@@ -51,18 +51,18 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col bg-blue-900 dark:bg-blue-950 text-white shadow-xl">
+    <div className="flex h-full w-64 flex-col bg-slate-800 dark:bg-slate-900 text-white shadow-xl">
       {/* Logo/Brand */}
-      <div className="flex h-16 items-center px-6 border-b border-blue-800 dark:border-blue-900">
+      <div className="flex h-16 items-center px-6 border-b border-slate-700 dark:border-slate-800">
         <h1 className="text-xl font-bold text-white">Vitaway</h1>
       </div>
 
       {/* Organization Info */}
       {organization && (
-        <div className="px-6 py-4 bg-blue-800 dark:bg-blue-900 border-b border-blue-700 dark:border-blue-800">
-          <p className="text-xs text-blue-200 dark:text-blue-300 uppercase tracking-wide font-medium">Organization</p>
+        <div className="px-6 py-4 bg-slate-700 dark:bg-slate-800 border-b border-slate-600 dark:border-slate-700">
+          <p className="text-xs text-slate-300 dark:text-slate-400 uppercase tracking-wide font-medium">Organization</p>
           <p className="text-sm font-semibold text-white mt-1">{organization.name}</p>
-          <p className="text-xs text-blue-200 dark:text-blue-300 mt-0.5">{organization.code}</p>
+          <p className="text-xs text-slate-300 dark:text-slate-400 mt-0.5">{organization.code}</p>
         </div>
       )}
 
@@ -77,8 +77,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-blue-800 dark:bg-blue-900 text-white shadow-md"
-                  : "text-blue-100 hover:bg-blue-800 dark:hover:bg-blue-900 hover:text-white"
+                  ? "bg-slate-700 dark:bg-slate-800 text-white shadow-md"
+                  : "text-slate-200 hover:bg-slate-700 dark:hover:bg-slate-800 hover:text-white"
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -88,13 +88,13 @@ export function Sidebar() {
         })}
       </nav>
 
-      <Separator className="bg-blue-800 dark:bg-blue-900" />
+      <Separator className="bg-slate-700 dark:bg-slate-800" />
 
       {/* User Section */}
-      <div className="p-4 bg-blue-800 dark:bg-blue-900">
+      <div className="p-4 bg-slate-700 dark:bg-slate-800">
         {user && (
           <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-700 dark:bg-blue-800 ring-2 ring-blue-600 dark:ring-blue-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600 dark:bg-slate-700 ring-2 ring-slate-500 dark:ring-slate-600">
               <span className="text-xs font-semibold text-white">
                 {user.firstname.charAt(0)}
                 {user.lastname.charAt(0)}
@@ -102,13 +102,13 @@ export function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{user.full_name}</p>
-              <p className="text-xs text-blue-200 dark:text-blue-300 truncate">{user.email}</p>
+              <p className="text-xs text-slate-300 dark:text-slate-400 truncate">{user.email}</p>
             </div>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-blue-100 transition-all duration-200 hover:bg-blue-700 dark:hover:bg-blue-800 hover:text-white"
+          className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition-all duration-200 hover:bg-slate-600 dark:hover:bg-slate-700 hover:text-white"
         >
           <LogOut className="h-5 w-5" />
           Sign Out

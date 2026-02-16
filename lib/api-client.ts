@@ -151,8 +151,10 @@ export async function addEmployee(data: {
   firstname: string;
   lastname: string;
   email: string;
-  phone?: string;
+  phone: string;
+  employee_identifier: string;
   initial_programs?: string[];
+  password?: string;
 }) {
   return fetchApi("/employees", {
     method: "POST",

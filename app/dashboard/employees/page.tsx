@@ -35,11 +35,14 @@ export default function EmployeesPage() {
     lastname: "",
     email: "",
     phone: "",
+    employee_identifier: "",
+    password: "",
   });
   const [addEmployeeLoading, setAddEmployeeLoading] = useState(false);
   const [addEmployeeError, setAddEmployeeError] = useState<string | null>(null);
   const [addEmployeeValidationErrors, setAddEmployeeValidationErrors] = useState<Record<string, string[]>>({});
   const [addEmployeeSuccess, setAddEmployeeSuccess] = useState(false);
+  const [addEmployeeResponseData, setAddEmployeeResponseData] = useState<any>(null);
 
   async function fetchEmployees() {
     try {
@@ -96,12 +99,15 @@ export default function EmployeesPage() {
       
       if (response.success) {
         setAddEmployeeSuccess(true);
+        setAddEmployeeResponseData(response.data);
         // Reset form
         setAddEmployeeForm({
           firstname: "",
           lastname: "",
           email: "",
           phone: "",
+          employee_identifier: "",
+          password: "",
         });
         // Refresh employee list
         const employeesResponse = await getEmployees({ page: currentPage }) as any;
@@ -132,6 +138,7 @@ export default function EmployeesPage() {
     setAddEmployeeError(null);
     setAddEmployeeValidationErrors({});
     setAddEmployeeSuccess(false);
+    setAddEmployeeResponseData(null);
   };
 
   const columns = [
@@ -300,7 +307,22 @@ export default function EmployeesPage() {
                   <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-green-900">Employee added successfully!</p>
-                    <p className="text-xs text-green-700 mt-1">The employee has been added to your organization.</p>
+                    <p className="text-xs text-green-700 mt-1">
+                      {addEmployeeResponseData?.full_name || 'The employee'} has been added to your organization.
+                    </p>
+                    {addEmployeeResponseData?.temporary_password && (
+                      <div className="mt-3 p-3 bg-white border border-green-300 rounded">
+                        <p className="text-xs font-semibold text-green-900 mb-1">
+                          Temporary Password (Share with employee):
+                        </p>
+                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                          {addEmployeeResponseData.temporary_password}
+                        </code>
+                        <p className="text-xs text-green-700 mt-2">
+                          ⚠️ Save this password - it won&apos;t be shown again!
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -375,6 +397,37 @@ export default function EmployeesPage() {
                       <p className="text-xs text-red-600">{addEmployeeValidationErrors.phone[0]}</p>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="employee_identifier">Employee ID *</Label>
+                    <Input
+                      id="employee_identifier"
+                      placeholder="EMP001"
+                      value={addEmployeeForm.employee_identifier}
+                      onChange={(e) => handleFormChange("employee_identifier", e.target.value)}
+                      className={addEmployeeValidationErrors.employee_identifier ? "border-red-500" : ""}
+                      required
+                    />
+                    {addEmployeeValidationErrors.employee_identifier && (
+                      <p className="text-xs text-red-600">{addEmployeeValidationErrors.employee_identifier[0]}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password (Optional)</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Leave blank to auto-generate"
+                    value={addEmployeeForm.password}
+                    onChange={(e) => handleFormChange("password", e.target.value)}
+                    className={addEmployeeValidationErrors.password ? "border-red-500" : ""}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If not provided, a random 12-character password will be generated
+                  </p>
+                  {addEmployeeValidationErrors.password && (
+                    <p className="text-xs text-red-600">{addEmployeeValidationErrors.password[0]}</p>
+                  )}
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button
@@ -386,10 +439,13 @@ export default function EmployeesPage() {
                         lastname: "",
                         email: "",
                         phone: "",
+                        employee_identifier: "",
+                        password: "",
                       });
                       setAddEmployeeError(null);
                       setAddEmployeeValidationErrors({});
                       setAddEmployeeSuccess(false);
+                      setAddEmployeeResponseData(null);
                     }}
                   >
                     Clear
