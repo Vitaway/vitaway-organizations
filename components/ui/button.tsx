@@ -19,11 +19,18 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        auth:
+          "bg-card text-card-foreground shadow-lg hover:bg-accent hover:text-accent-foreground border border-border",
+        authOutline:
+          "border-2 border-border bg-muted/50 text-foreground shadow-sm hover:bg-muted hover:border-border/80",
+        authGhost:
+          "text-foreground hover:bg-accent hover:text-accent-foreground",
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
+        xl: "h-12 rounded-md px-10 text-base",
         icon: "h-9 w-9",
       },
     },

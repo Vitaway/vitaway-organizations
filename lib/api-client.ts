@@ -273,4 +273,127 @@ export async function getAccessLogs(params?: {
   return fetchApi(url);
 }
 
+// Appointments - Employee Endpoints
+export async function getAvailableProviders(type?: string) {
+  const queryParams = new URLSearchParams();
+  if (type) queryParams.append("type", type);
+  
+  const url = `/employee/appointments/available-providers${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
+}
+
+export async function bookAppointment(data: {
+  provider_id: number;
+  provider_type: string;
+  appointment_type: string;
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
+  notes?: string;
+}) {
+  return fetchApi("/employee/appointments", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getEmployeeAppointments(params?: {
+  status?: string;
+  type?: string;
+  filter?: string;
+  per_page?: number;
+  page?: number;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append("status", params.status);
+  if (params?.type) queryParams.append("type", params.type);
+  if (params?.filter) queryParams.append("filter", params.filter);
+  if (params?.per_page) queryParams.append("per_page", params.per_page.toString());
+  if (params?.page) queryParams.append("page", params.page.toString());
+  
+  const url = `/employee/appointments${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
+}
+
+// Appointments - Admin Endpoints
+export async function getOrganizationAppointments(params?: {
+  status?: string;
+  type?: string;
+  provider_id?: number;
+  filter?: string;
+  start_date?: string;
+  end_date?: string;
+  per_page?: number;
+  page?: number;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append("status", params.status);
+  if (params?.type) queryParams.append("type", params.type);
+  if (params?.provider_id) queryParams.append("provider_id", params.provider_id.toString());
+  if (params?.filter) queryParams.append("filter", params.filter);
+  if (params?.start_date) queryParams.append("start_date", params.start_date);
+  if (params?.end_date) queryParams.append("end_date", params.end_date);
+  if (params?.per_page) queryParams.append("per_page", params.per_page.toString());
+  if (params?.page) queryParams.append("page", params.page.toString());
+  
+  const url = `/appointments${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
+}
+
+export async function getMyAppointments(params?: {
+  status?: string;
+  type?: string;
+  filter?: string;
+  start_date?: string;
+  end_date?: string;
+  per_page?: number;
+  page?: number;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append("status", params.status);
+  if (params?.type) queryParams.append("type", params.type);
+  if (params?.filter) queryParams.append("filter", params.filter);
+  if (params?.start_date) queryParams.append("start_date", params.start_date);
+  if (params?.end_date) queryParams.append("end_date", params.end_date);
+  if (params?.per_page) queryParams.append("per_page", params.per_page.toString());
+  if (params?.page) queryParams.append("page", params.page.toString());
+  
+  const url = `/appointments/my-appointments${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
+}
+
+export async function getAppointmentDetails(appointmentId: number) {
+  return fetchApi(`/appointments/${appointmentId}`);
+}
+
+export async function updateAppointmentStatus(
+  appointmentId: number,
+  data: {
+    status: string;
+    notes?: string;
+    cancellation_reason?: string;
+  }
+) {
+  return fetchApi(`/appointments/${appointmentId}/status`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getAppointmentStatistics(params?: {
+  start_date?: string;
+  end_date?: string;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params?.start_date) queryParams.append("start_date", params.start_date);
+  if (params?.end_date) queryParams.append("end_date", params.end_date);
+  
+  const url = `/appointments/statistics${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
+}
+
+export async function getAvailablePartners() {
+  return fetchApi("/appointments/available-partners");
+}
+
 export { ApiError, getToken, setToken, removeToken };

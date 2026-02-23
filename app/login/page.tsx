@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -31,17 +32,17 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4">
-            <Card className="w-full max-w-md">
+        <div className="flex flex-col min-h-screen items-center justify-center bg-gray-800 px-4">
+            <div className="flex flex-col items-center justify-center">
+                <div className="text-center">
+                    <Image src="https://ehr.vitaway.org/logo.png" alt="Vitaway Logo" width={120} height={40} />
+                </div>
+            </div>
+            <Card className="w-full max-w-md bg-gray-900 border-gray-700ke">
                 <CardHeader className="space-y-1">
-                    <div className="flex items-center justify-center mb-4">
-                        <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-                            <span className="text-primary-foreground text-xl font-bold">V</span>
-                        </div>
-                    </div>
-                    <CardTitle className="text-2xl text-center">Vitaway</CardTitle>
+                    <CardTitle className="text-2xl text-center">Signin</CardTitle>
                     <CardDescription className="text-center">
-                        Sign in to access your organization dashboard
+                        Access your organization dashboard
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -79,7 +80,7 @@ export default function LoginPage() {
                             />
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full bg-gray-600" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
@@ -96,6 +97,10 @@ export default function LoginPage() {
                     </div>
                 </CardContent>
             </Card>
+            {/* Footer */}
+            <p className="mt-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                &copy; 2026 Vitaway. All rights reserved.
+            </p>
         </div>
     );
 }

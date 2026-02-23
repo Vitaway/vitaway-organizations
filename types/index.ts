@@ -178,3 +178,94 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+// Appointment Types
+export enum AppointmentType {
+  COACHING = 'coaching',
+  MENTAL_HEALTH = 'mental_health',
+  NUTRITION = 'nutrition',
+  GENERAL = 'general',
+  CONSULTATION = 'consultation',
+}
+
+export enum AppointmentStatus {
+  SCHEDULED = 'scheduled',
+  CONFIRMED = 'confirmed',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  NO_SHOW = 'no_show',
+}
+
+export enum ProviderType {
+  USER = 'user',
+  ORGANIZATION_ADMIN = 'organization_admin',
+}
+
+// Provider
+export interface Provider {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  type: string;
+}
+
+// Appointment
+export interface Appointment {
+  id: number;
+  employee_id: number;
+  provider_id: number;
+  provider_type: string;
+  partner_organization_id?: number;
+  appointment_type: string;
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
+  status: string;
+  notes?: string;
+  cancellation_reason?: string;
+  created_at: string;
+  updated_at?: string;
+  provider_details?: Provider;
+  employee?: {
+    id: number;
+    firstname: string;
+    lastname: string;
+    email: string;
+  };
+  provider?: {
+    id: number;
+    firstname: string;
+    lastname: string;
+    email: string;
+  };
+}
+
+// Appointment Booking Request
+export interface AppointmentBookingRequest {
+  provider_id: number;
+  provider_type: string;
+  appointment_type: string;
+  appointment_date: string;
+  appointment_time: string;
+  duration_minutes: number;
+  notes?: string;
+}
+
+// Appointment Update Request
+export interface AppointmentUpdateRequest {
+  status: string;
+  notes?: string;
+  cancellation_reason?: string;
+}
+
+// Appointment Statistics
+export interface AppointmentStatistics {
+  total: number;
+  scheduled: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  upcoming: number;
+  completion_rate: number;
+}
