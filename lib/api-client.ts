@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * API Client for Organization Dashboard
  * All API calls must include organization context for tenant isolation
