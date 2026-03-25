@@ -28,7 +28,7 @@ export default function EmployeesPage() {
   const [errorType, setErrorType] = useState<'auth' | 'server' | 'network'>('network');
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  
+
   // Add employee form state
   const [addEmployeeForm, setAddEmployeeForm] = useState({
     firstname: "",
@@ -63,7 +63,7 @@ export default function EmployeesPage() {
       setLoading(true);
       setError(null);
       const response = await getEmployees({ page: currentPage }) as ApiResponse<Employee[]> & { total?: number };
-      
+
       if (response?.success && response.data) {
         // API returns { success: true, data: [...], total: 250 }
         setEmployees(Array.isArray(response.data) ? response.data : []);
@@ -127,10 +127,10 @@ export default function EmployeesPage() {
       };
 
       const response = await addEmployee(payload) as ApiResponse<Employee>;
-      
+
       if (response.success) {
         setAddEmployeeSuccess(true);
-        setAddEmployeeResponseData(response.data);
+        setAddEmployeeResponseData((response.data as Record<string, unknown>) ?? null);
         // Reset form
         setAddEmployeeForm({
           firstname: "",
@@ -252,8 +252,8 @@ export default function EmployeesPage() {
         const statusClass = value === "enrolled"
           ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
           : value === "pending"
-          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-          : "bg-muted text-muted-foreground";
+            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
             {value}
@@ -289,10 +289,10 @@ export default function EmployeesPage() {
         const riskClass = value === "low"
           ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
           : value === "medium"
-          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-          : value === "high"
-          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-          : "bg-muted text-muted-foreground";
+            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            : value === "high"
+              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+              : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${riskClass}`}>
             {value}
@@ -417,7 +417,7 @@ export default function EmployeesPage() {
                   </div>
                 </div>
               )}
-              
+
               {addEmployeeError && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
