@@ -248,15 +248,16 @@ export default function EmployeesPage() {
     {
       key: "enrollment_status",
       label: "Enrollment",
-      render: (value: string) => {
-        const statusClass = value === "enrolled"
+      render: (value: unknown) => {
+        const v = String(value ?? '');
+        const statusClass = v === "enrolled"
           ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
           : value === "pending"
             ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
             : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
-            {value}
+            {v}
           </span>
         );
       },
@@ -264,13 +265,14 @@ export default function EmployeesPage() {
     {
       key: "engagement_status",
       label: "Status",
-      render: (value: string) => {
-        const statusClass = value === "active"
+      render: (value: unknown) => {
+        const v = String(value ?? '');
+        const statusClass = v === "active"
           ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
           : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
-            {value}
+            {v}
           </span>
         );
       },
@@ -278,24 +280,25 @@ export default function EmployeesPage() {
     {
       key: "program_assignments",
       label: "Programs",
-      render: (value: string[]) => (
-        <span className="text-sm">{value?.length || 0} enrolled</span>
+      render: (value: unknown) => (
+        <span className="text-sm">{Array.isArray(value) ? value.length : 0} enrolled</span>
       ),
     },
     {
       key: "risk_category",
       label: "Risk",
-      render: (value: string) => {
-        const riskClass = value === "low"
+      render: (value: unknown) => {
+        const v = String(value ?? '');
+        const riskClass = v === "low"
           ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-          : value === "medium"
-            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-            : value === "high"
-              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-              : "bg-muted text-muted-foreground";
+            : v === "medium"
+              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+              : v === "high"
+                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${riskClass}`}>
-            {value}
+            {v}
           </span>
         );
       },
@@ -303,8 +306,8 @@ export default function EmployeesPage() {
     {
       key: "last_active_at",
       label: "Last Active",
-      render: (value: string | null) =>
-        value ? new Date(value).toLocaleDateString() : "Never",
+      render: (value: unknown) =>
+        value ? new Date(String(value)).toLocaleDateString() : "Never",
     },
   ];
 
@@ -399,15 +402,15 @@ export default function EmployeesPage() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-green-900 dark:text-green-400">Employee added successfully!</p>
                     <p className="text-xs text-green-700 dark:text-green-500 mt-1">
-                      {addEmployeeResponseData?.full_name || 'The employee'} has been added to your organization.
+                      {String(addEmployeeResponseData?.full_name || 'The employee')} has been added to your organization.
                     </p>
-                    {addEmployeeResponseData?.temporary_password && (
+                    {!!addEmployeeResponseData?.temporary_password && (
                       <div className="mt-3 p-3 bg-card border border-green-300 dark:border-green-700 rounded">
                         <p className="text-xs font-semibold text-green-900 dark:text-green-400 mb-1">
                           Temporary Password (Share with employee):
                         </p>
                         <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                          {addEmployeeResponseData.temporary_password}
+                          {String(addEmployeeResponseData.temporary_password)}
                         </code>
                         <p className="text-xs text-green-700 dark:text-green-500 mt-2">
                           Note: Save this password - it won&apos;t be shown again.

@@ -45,7 +45,7 @@ export function usePrograms(filters?: ProgramFilters) {
       if (typeof pageOrFilters === 'number') {
         params = { ...filters, page: pageOrFilters, per_page: perPage || filters?.per_page || 20 };
       } else {
-        params = pageOrFilters || filters;
+        params = pageOrFilters || filters || {};
       }
       const response = await apiClient.get('/programs', { params });
 

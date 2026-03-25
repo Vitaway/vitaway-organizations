@@ -35,17 +35,13 @@ export default function ReportsPage() {
   async function fetchReports() {
     try {
       setLoading(true);
-      setError(null);
       const response = await getReports({ page: currentPage }) as ApiResponse<{ data: Report[]; last_page: number }>;
 
       if (response?.success && response.data) {
         setReports(response.data.data || []);
         setTotalPages(response.data.last_page || 1);
-        setError(null);
       } else {
         setReports([]);
-        setError(response?.message || "Failed to load reports");
-        setErrorType('server');
       }
     } catch (err: unknown) {
       console.error("Error fetching reports:", err);
@@ -130,37 +126,40 @@ export default function ReportsPage() {
     {
       key: "format",
       label: "Format",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {value}
+          {String(value)}
         </span>
       ),
     },
     {
       key: "generatedAt",
       label: "Generated",
-      render: (value: Date) => new Date(value).toLocaleString(),
+      render: (value: unknown) => new Date(String(value)).toLocaleString(),
     },
     {
       key: "status",
       label: "Status",
-      render: (value: string) => (
+      render: (value: unknown) => {
+        const v = String(value);
+        return (
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${value === "COMPLETED"
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${v === "COMPLETED"
               ? "bg-green-100 text-green-800"
-              : value === "GENERATING"
+              : v === "GENERATING"
                 ? "bg-yellow-100 text-yellow-800"
                 : "bg-red-100 text-red-800"
             }`}
         >
-          {value}
+          {v}
         </span>
-      ),
+        );
+      },
     },
     {
       key: "downloadUrl",
       label: "Action",
-      render: (value: string | undefined, row: Report) =>
+      render: (value: unknown, row: Report) =>
         row.status === "COMPLETED" ? (
           <Button variant="outline" size="sm" onClick={() => handleDownloadReport(row)}>
             <Download className="h-4 w-4 mr-2" />
@@ -182,7 +181,7 @@ export default function ReportsPage() {
     {
       key: "recordCount",
       label: "Records",
-      render: (value: number) => value.toLocaleString(),
+      render: (value: unknown) => Number(value).toLocaleString(),
     },
     {
       key: "exportedBy",
@@ -191,7 +190,7 @@ export default function ReportsPage() {
     {
       key: "exportedAt",
       label: "Exported At",
-      render: (value: Date) => new Date(value).toLocaleString(),
+      render: (value: unknown) => new Date(String(value)).toLocaleString(),
     },
   ];
 

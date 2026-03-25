@@ -62,7 +62,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     <TableCell key={column.key}>
                       {column.render
                         ? column.render(row[column.key], row)
-                        : row[column.key]}
+                        : row[column.key] as React.ReactNode}
                     </TableCell>
                   ))}
                 </TableRow>

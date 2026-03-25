@@ -71,6 +71,7 @@ export interface DashboardMetrics {
 
 // Employee (Limited View for Employer Dashboard)
 export interface Employee {
+  [key: string]: unknown;
   employee_id: number;
   full_name: string;
   email: string;
@@ -137,6 +138,7 @@ export interface EngagementMetrics {
 
 // Report
 export interface Report {
+  [key: string]: unknown;
   id: string;
   organizationId: string;
   reportType: string;
@@ -149,6 +151,7 @@ export interface Report {
 
 // Export History
 export interface ExportHistory {
+  [key: string]: unknown;
   id: string;
   organizationId: string;
   exportedBy: string;
