@@ -130,7 +130,7 @@ export default function EmployeesPage() {
 
       if (response.success) {
         setAddEmployeeSuccess(true);
-        setAddEmployeeResponseData((response.data as Record<string, unknown>) ?? null);
+        setAddEmployeeResponseData((response.data as unknown as Record<string, unknown>) ?? null);
         // Reset form
         setAddEmployeeForm({
           firstname: "",
