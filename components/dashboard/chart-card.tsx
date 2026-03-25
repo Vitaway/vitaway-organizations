@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -32,6 +31,52 @@ interface ChartCardProps {
   xAxisKey?: string;
   colors?: string[];
   description?: string;
+}
+
+interface TooltipEntry {
+  color: string;
+  name: string;
+  value: string | number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+  tooltipBg: string;
+  tooltipBorder: string;
+  textColor: string;
+}
+
+function CustomTooltip({ active, payload, label, tooltipBg, tooltipBorder, textColor }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        className="rounded-lg border shadow-lg p-3"
+        style={{
+          backgroundColor: tooltipBg,
+          borderColor: tooltipBorder,
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <p className="font-semibold text-sm mb-1" style={{ color: textColor }}>
+          {label}
+        </p>
+        {payload.map((entry: TooltipEntry, index: number) => (
+          <p key={index} className="text-sm flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span style={{ color: textColor }}>
+              {entry.name}: <strong>{entry.value}</strong>
+            </span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
 }
 
 // Professional color palette with gradients
@@ -63,38 +108,8 @@ export function ChartCard({
   const textColor = isDark ? "#cbd5e1" : "#475569";
   const tooltipBg = isDark ? "rgba(30, 41, 59, 0.95)" : "rgba(255, 255, 255, 0.95)";
   const tooltipBorder = isDark ? "#334155" : "#e2e8f0";
-  
-  // Custom tooltip styling
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div
-          className="rounded-lg border shadow-lg p-3"
-          style={{
-            backgroundColor: tooltipBg,
-            borderColor: tooltipBorder,
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <p className="font-semibold text-sm mb-1" style={{ color: textColor }}>
-            {label}
-          </p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm flex items-center gap-2">
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span style={{ color: textColor }}>
-                {entry.name}: <strong>{entry.value}</strong>
-              </span>
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+
+  const tooltipProps = { tooltipBg, tooltipBorder, textColor };
   
   return (
     <Card className="overflow-hidden">
@@ -137,7 +152,7 @@ export function ChartCard({
                 tickLine={false}
                 axisLine={{ stroke: gridColor }}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? "rgba(51, 65, 85, 0.3)" : "rgba(241, 245, 249, 0.8)" }} />
+              <Tooltip content={<CustomTooltip {...tooltipProps} />} cursor={{ fill: isDark ? "rgba(51, 65, 85, 0.3)" : "rgba(241, 245, 249, 0.8)" }} />
               <Bar
                 dataKey={dataKey}
                 fill="url(#colorGradient0)"
@@ -168,7 +183,7 @@ export function ChartCard({
                 tickLine={false}
                 axisLine={{ stroke: gridColor }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip {...tooltipProps} />} />
               <Area
                 type="monotone"
                 dataKey={dataKey}
@@ -194,7 +209,7 @@ export function ChartCard({
                 tickLine={false}
                 axisLine={{ stroke: gridColor }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip {...tooltipProps} />} />
               <Line
                 type="monotone"
                 dataKey={dataKey}
@@ -256,7 +271,7 @@ export function ChartCard({
                   />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip {...tooltipProps} />} />
             </PieChart>
           )}
         </ResponsiveContainer>

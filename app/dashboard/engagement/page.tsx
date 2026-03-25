@@ -7,12 +7,12 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EngagementMetrics, ApiResponse } from "@/types";
-import { Users, Calendar, BookOpen, UserX, AlertCircle } from "lucide-react";
-import { getEngagementMetrics } from "@/lib/api-client";
+import { Users, Calendar, UserX, AlertCircle } from "lucide-react";
+import { getEngagementMetrics, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function EngagementPage() {
-  const [data, setData] = useState<any | null>(null);
+  const [data, setData] = useState<EngagementMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'auth' | 'server' | 'network'>('network');
@@ -23,7 +23,7 @@ export default function EngagementPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await getEngagementMetrics() as ApiResponse<any>;
+      const response = await getEngagementMetrics() as ApiResponse<EngagementMetrics>;
       
       if (response?.success && response.data) {
         setData(response.data);
@@ -33,16 +33,21 @@ export default function EngagementPage() {
         setError(response?.message || "Failed to load engagement metrics");
         setErrorType('server');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching engagement metrics:", err);
       const message = err instanceof Error ? err.message : String(err);
-      
-      if (message.includes('Unauthenticated') || message.includes('401')) {
-        setErrorType('auth');
-        setError('You need to login to view this data');
-      } else if (message.includes('500')) {
-        setErrorType('server');
-        setError(message);
+
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setErrorType('auth');
+          setError('You need to login to view this data');
+        } else if (err.status >= 500) {
+          setErrorType('server');
+          setError(err.message);
+        } else {
+          setErrorType('network');
+          setError(err.message || "Failed to fetch engagement metrics");
+        }
       } else {
         setErrorType('network');
         setError(message || "Failed to fetch engagement metrics");
@@ -55,15 +60,14 @@ export default function EngagementPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading engagement metrics...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading engagement metrics...</p>
         </div>
       </div>
     );
@@ -76,9 +80,9 @@ export default function EngagementPage() {
           <h1 className="text-3xl font-bold tracking-tight">Engagement & Utilization</h1>
           <p className="text-muted-foreground">Track employee platform usage and participation metrics</p>
         </div>
-        <Card className={errorType === 'auth' ? "border-yellow-200 bg-yellow-50" : "border-red-200 bg-red-50"}>
+        <Card className={errorType === 'auth' ? "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20" : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"}>
           <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${errorType === 'auth' ? 'text-yellow-900' : 'text-red-900'}`}>
+            <CardTitle className={`flex items-center gap-2 ${errorType === 'auth' ? 'text-yellow-900 dark:text-yellow-400' : 'text-red-900 dark:text-red-400'}`}>
               <AlertCircle className="h-5 w-5" />
               {errorType === 'auth' ? 'Authentication Required' : 'Error Loading Data'}
             </CardTitle>
@@ -105,7 +109,7 @@ export default function EngagementPage() {
   }
 
   // Map login_trends to chart format
-  const loginTrends = (data.login_trends || []).map((item: any) => ({
+  const loginTrends = (data.login_trends || []).map((item) => ({
     date: item.date,
     count: item.logins,
   }));
@@ -214,7 +218,7 @@ export default function EngagementPage() {
                     {data.inactivity_flags?.["30_days"] || 0}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-yellow-500 h-2 rounded-full"
                     style={{
@@ -233,7 +237,7 @@ export default function EngagementPage() {
                     {data.inactivity_flags?.["60_days"] || 0}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-orange-500 h-2 rounded-full"
                     style={{
@@ -252,7 +256,7 @@ export default function EngagementPage() {
                     {data.inactivity_flags?.["90_days"] || 0}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-red-500 h-2 rounded-full"
                     style={{

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { login as apiLogin, logout as apiLogout, getToken } from "@/lib/api-client";
+import { login as apiLogin, logout as apiLogout, getToken, clearAuthStorage } from "@/lib/api-client";
 
 interface User {
   id: number;
@@ -59,6 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setOrganization(null);
+      setRole(null);
+      setPermissions([]);
+      clearAuthStorage();
+      router.push("/login");
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
+  }, [router]);
 
   const login = async (email: string, password: string) => {
     try {

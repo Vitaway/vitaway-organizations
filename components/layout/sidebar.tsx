@@ -9,6 +9,10 @@ import {
   TrendingUp,
   FileText,
   LogOut,
+  BookOpen,
+  CalendarDays,
+  UserCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -40,6 +44,26 @@ const navigation = [
     href: "/dashboard/reports",
     icon: FileText,
   },
+  {
+    name: "Programs",
+    href: "/dashboard/programs",
+    icon: BookOpen,
+  },
+  {
+    name: "Appointments",
+    href: "/dashboard/appointments",
+    icon: CalendarDays,
+  },
+  {
+    name: "Audit Logs",
+    href: "/dashboard/audit",
+    icon: ShieldCheck,
+  },
+  {
+    name: "Profile",
+    href: "/dashboard/profile",
+    icon: UserCircle,
+  },
 ];
 
 export function Sidebar() {
@@ -51,18 +75,18 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col bg-slate-800 dark:bg-slate-900 text-white shadow-xl">
+    <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground shadow-xl">
       {/* Logo/Brand */}
-      <div className="flex h-16 items-center px-6 border-b border-slate-700 dark:border-slate-800">
-        <h1 className="text-xl font-bold text-white">Vitaway</h1>
+      <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
+        <h1 className="text-xl font-bold text-sidebar-foreground">Vitaway</h1>
       </div>
 
       {/* Organization Info */}
       {organization && (
-        <div className="px-6 py-4 bg-slate-700 dark:bg-slate-800 border-b border-slate-600 dark:border-slate-700">
-          <p className="text-xs text-slate-300 dark:text-slate-400 uppercase tracking-wide font-medium">Organization</p>
-          <p className="text-sm font-semibold text-white mt-1">{organization.name}</p>
-          <p className="text-xs text-slate-300 dark:text-slate-400 mt-0.5">{organization.code}</p>
+        <div className="px-6 py-4 bg-sidebar-accent border-b border-sidebar-border">
+          <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wide font-medium">Organization</p>
+          <p className="text-sm font-semibold text-sidebar-foreground mt-1">{organization.name}</p>
+          <p className="text-xs text-sidebar-foreground/60 mt-0.5">{organization.code}</p>
         </div>
       )}
 
@@ -77,8 +101,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-slate-700 dark:bg-slate-800 text-white shadow-md"
-                  : "text-slate-200 hover:bg-slate-700 dark:hover:bg-slate-800 hover:text-white"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -88,27 +112,27 @@ export function Sidebar() {
         })}
       </nav>
 
-      <Separator className="bg-slate-700 dark:bg-slate-800" />
+      <Separator className="bg-sidebar-border" />
 
       {/* User Section */}
-      <div className="p-4 bg-slate-700 dark:bg-slate-800">
+      <div className="p-4 bg-sidebar-accent">
         {user && (
           <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-600 dark:bg-slate-700 ring-2 ring-slate-500 dark:ring-slate-600">
-              <span className="text-xs font-semibold text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-border ring-2 ring-sidebar-foreground/20">
+              <span className="text-xs font-semibold text-sidebar-foreground">
                 {user.firstname.charAt(0)}
                 {user.lastname.charAt(0)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user.full_name}</p>
-              <p className="text-xs text-slate-300 dark:text-slate-400 truncate">{user.email}</p>
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">{user.full_name}</p>
+              <p className="text-xs text-sidebar-foreground/60 truncate">{user.email}</p>
             </div>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition-all duration-200 hover:bg-slate-600 dark:hover:bg-slate-700 hover:text-white"
+          className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/80 transition-all duration-200 hover:bg-sidebar-border hover:text-sidebar-foreground"
         >
           <LogOut className="h-5 w-5" />
           Sign Out

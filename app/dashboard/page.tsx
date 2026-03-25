@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Activity, TrendingUp, AlertCircle } from "lucide-react";
 import { DashboardMetrics, ApiResponse } from "@/types";
-import { getDashboardMetrics } from "@/lib/api-client";
+import { getDashboardMetrics, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function DashboardOverview() {
@@ -27,7 +27,15 @@ export default function DashboardOverview() {
 
       if (response?.success && response.data) {
         // Map snake_case API response to camelCase TypeScript interface
-        const apiData = response.data as any;
+        const apiData = response.data as unknown as {
+          total_employees?: number;
+          active_users?: number;
+          inactive_users?: number;
+          engagement_rate?: number;
+          program_participation_rate?: number;
+          risk_distribution?: { low_risk?: number; medium_risk?: number; high_risk?: number; critical_risk?: number };
+          outcome_indicators?: { avg_health_improvement?: number; program_completion_rate?: number; cost_savings_estimated?: number };
+        };
         setMetrics({
           totalEmployees: apiData.total_employees ?? 0,
           activeUsers: apiData.active_users ?? 0,
@@ -35,14 +43,15 @@ export default function DashboardOverview() {
           engagementRate: apiData.engagement_rate ?? 0,
           programParticipationRate: apiData.program_participation_rate ?? 0,
           riskDistribution: {
-            low: apiData.risk_distribution?.low ?? 0,
-            medium: apiData.risk_distribution?.medium ?? 0,
-            high: apiData.risk_distribution?.high ?? 0,
+            low: apiData.risk_distribution?.low_risk ?? 0,
+            medium: apiData.risk_distribution?.medium_risk ?? 0,
+            high: apiData.risk_distribution?.high_risk ?? 0,
+            critical: apiData.risk_distribution?.critical_risk ?? 0,
           },
           outcomeIndicators: apiData.outcome_indicators ? {
-            improved: apiData.outcome_indicators.improved ?? 0,
-            stable: apiData.outcome_indicators.stable ?? 0,
-            declined: apiData.outcome_indicators.declined ?? 0,
+            avgHealthImprovement: apiData.outcome_indicators.avg_health_improvement ?? 0,
+            programCompletionRate: apiData.outcome_indicators.program_completion_rate ?? 0,
+            costSavingsEstimated: apiData.outcome_indicators.cost_savings_estimated ?? 0,
           } : undefined,
         });
         setError(null);
@@ -50,17 +59,22 @@ export default function DashboardOverview() {
         setMetrics(null);
         setError(response?.message || "Dashboard API returned an error");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching metrics:", err);
       const message = err instanceof Error ? err.message : String(err);
-      
+
       // Detect error type
-      if (message.includes('Unauthenticated') || message.includes('401')) {
-        setErrorType('auth');
-        setError('You need to login to view dashboard metrics');
-      } else if (message.includes('undefined method') || message.includes('500')) {
-        setErrorType('server');
-        setError(message);
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setErrorType('auth');
+          setError('You need to login to view dashboard metrics');
+        } else if (err.status >= 500) {
+          setErrorType('server');
+          setError(err.message);
+        } else {
+          setErrorType('network');
+          setError(err.message || "Failed to fetch dashboard metrics");
+        }
       } else {
         setErrorType('network');
         setError(message || "Failed to fetch dashboard metrics");
@@ -74,7 +88,6 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     fetchMetrics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -151,7 +164,7 @@ export default function DashboardOverview() {
                   {showDetails ? "Hide details" : "Show details"}
                 </button>
                 <button
-                  className="inline-flex items-center rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-800 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                  className="inline-flex items-center rounded border border-red-300 bg-card px-3 py-1 text-sm text-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
                   onClick={() => fetchMetrics()}
                   disabled={loading}
                 >
@@ -160,7 +173,7 @@ export default function DashboardOverview() {
               </div>
 
               {showDetails && (
-                <pre className="whitespace-pre-wrap wrap-break-word bg-red-100 p-3 rounded text-xs text-red-900">
+                <pre className="whitespace-pre-wrap wrap-break-word bg-red-100 dark:bg-red-900/30 p-3 rounded text-xs text-red-900 dark:text-red-300">
                   {isDev ? error : "An internal error occurred. Contact support."}
                 </pre>
               )}
@@ -168,13 +181,13 @@ export default function DashboardOverview() {
               <div>
                 <p className="font-semibold mb-1">Troubleshooting</p>
                 <ul className="list-disc list-inside ml-2 text-xs space-y-1">
-                  <li>Backend URL: <code className="bg-red-100 px-2 py-1 rounded">http://127.0.0.1:8000/api/org</code></li>
-                  <li>Endpoint: <code className="bg-red-100 px-2 py-1 rounded">GET /dashboard/overview</code></li>
+                  <li>Backend URL: <code className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">http://127.0.0.1:8000/api/organization</code></li>
+                  <li>Endpoint: <code className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">GET /dashboard/overview</code></li>
                   {errorType === 'server' && (
-                    <li className="text-yellow-700 font-medium">Check Laravel logs: <code className="bg-red-100 px-2 py-1 rounded">storage/logs/laravel.log</code></li>
+                    <li className="text-yellow-700 dark:text-yellow-400 font-medium">Check Laravel logs: <code className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">storage/logs/laravel.log</code></li>
                   )}
                   {errorType === 'network' && (
-                    <li className="text-yellow-700 font-medium">Ensure Laravel is running: <code className="bg-red-100 px-2 py-1 rounded">php artisan serve</code></li>
+                    <li className="text-yellow-700 dark:text-yellow-400 font-medium">Ensure Laravel is running: <code className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">php artisan serve</code></li>
                   )}
                 </ul>
               </div>
@@ -193,19 +206,17 @@ export default function DashboardOverview() {
     { name: "Low", value: metrics.riskDistribution.low },
     { name: "Medium", value: metrics.riskDistribution.medium },
     { name: "High", value: metrics.riskDistribution.high },
+    { name: "Critical", value: metrics.riskDistribution.critical },
   ];
 
   const engagementTrendData = [
-    { name: "Week 1", value: 72 },
-    { name: "Week 2", value: 75 },
-    { name: "Week 3", value: 76 },
-    { name: "Week 4", value: 78.4 },
+    { name: "Current", value: metrics.engagementRate },
   ];
 
   const outcomeData = metrics.outcomeIndicators ? [
-    { name: "Improved", value: metrics.outcomeIndicators.improved },
-    { name: "Stable", value: metrics.outcomeIndicators.stable },
-    { name: "Declined", value: metrics.outcomeIndicators.declined },
+    { name: "Health Improvement", value: metrics.outcomeIndicators.avgHealthImprovement },
+    { name: "Completion Rate", value: metrics.outcomeIndicators.programCompletionRate },
+    { name: "Cost Savings", value: metrics.outcomeIndicators.costSavingsEstimated },
   ] : null;
 
   return (
@@ -213,7 +224,7 @@ export default function DashboardOverview() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
         <p className="text-muted-foreground">
-          Monitor your organization's health and engagement metrics
+          Monitor your organization&apos;s health and engagement metrics
         </p>
       </div>
 
@@ -230,21 +241,18 @@ export default function DashboardOverview() {
           value={metrics.activeUsers.toLocaleString()}
           icon={Activity}
           description={`${metrics.inactiveUsers} inactive`}
-          trend={{ value: 5.2, isPositive: true }}
         />
         <MetricCard
           title="Engagement Rate"
           value={`${metrics.engagementRate}%`}
           icon={TrendingUp}
           description="Last 30 days"
-          trend={{ value: 2.1, isPositive: true }}
         />
         <MetricCard
           title="Program Participation"
           value={`${metrics.programParticipationRate}%`}
           icon={AlertCircle}
           description="Enrolled in at least one program"
-          trend={{ value: 3.5, isPositive: true }}
         />
       </div>
 
@@ -254,7 +262,7 @@ export default function DashboardOverview() {
           title="Risk Category Distribution"
           data={riskDistributionData}
           type="pie"
-          colors={["#10b981", "#f59e0b", "#ef4444"]}
+          colors={["#10b981", "#f59e0b", "#ef4444", "#dc2626"]}
           description="Employee risk categorization (non-diagnostic)"
         />
         <ChartCard
@@ -282,29 +290,35 @@ export default function DashboardOverview() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border bg-card p-6">
           <h3 className="text-sm font-medium text-muted-foreground">
-            Estimated Cost Impact
+            Estimated Cost Savings
           </h3>
-          <p className="mt-2 text-2xl font-bold">$125,000</p>
+          <p className="mt-2 text-2xl font-bold">
+            ${metrics.outcomeIndicators?.costSavingsEstimated?.toLocaleString() ?? '—'}
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
             Projected annual savings from preventive care
           </p>
         </div>
         <div className="rounded-lg border bg-card p-6">
           <h3 className="text-sm font-medium text-muted-foreground">
-            Average Health Score
+            Avg Health Improvement
           </h3>
-          <p className="mt-2 text-2xl font-bold">7.8/10</p>
+          <p className="mt-2 text-2xl font-bold">
+            {metrics.outcomeIndicators?.avgHealthImprovement ?? '—'}%
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
             Aggregated population health indicator
           </p>
         </div>
         <div className="rounded-lg border bg-card p-6">
           <h3 className="text-sm font-medium text-muted-foreground">
-            Program Completion
+            Program Completion Rate
           </h3>
-          <p className="mt-2 text-2xl font-bold">892</p>
+          <p className="mt-2 text-2xl font-bold">
+            {metrics.outcomeIndicators?.programCompletionRate ?? '—'}%
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Programs completed this month
+            Programs completed across organization
           </p>
         </div>
       </div>

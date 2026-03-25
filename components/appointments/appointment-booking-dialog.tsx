@@ -41,7 +41,6 @@ export function AppointmentBookingDialog({
 
   const fetchProviders = async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await getAvailableProviders() as any;
       if (response.success && response.data) {
         setProviders(response.data);
@@ -58,7 +57,6 @@ export function AppointmentBookingDialog({
     setLoading(true);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = (await bookAppointment({
         provider_id: parseInt(formData.provider_id),
         provider_type: formData.provider_type,
@@ -125,7 +123,17 @@ export function AppointmentBookingDialog({
             <select
               id="provider_id"
               value={formData.provider_id}
-              onChange={(e) => setFormData({ ...formData, provider_id: e.target.value })}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedProvider = providers.find(
+                  (provider) => provider.id === Number(selectedId)
+                );
+                setFormData({
+                  ...formData,
+                  provider_id: selectedId,
+                  provider_type: selectedProvider?.type || "organization_admin",
+                });
+              }}
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               required
             >

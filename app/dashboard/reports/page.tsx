@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/dashboard/data-table";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,9 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Report, ExportHistory, ApiResponse } from "@/types";
-import { FileText, Download, Calendar, AlertCircle } from "lucide-react";
-import { getReports } from "@/lib/api-client";
-import { useAuth } from "@/contexts/auth-context";
+import { FileText, Download, Calendar } from "lucide-react";
+import { getReports, generateReport, downloadReport, getExportAuditLogs } from "@/lib/api-client";
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -24,16 +22,21 @@ export default function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<'auth' | 'server' | 'network'>('network');
-  const router = useRouter();
-  const { isAuthenticated } = useAuth();
+
+  // Generate form state
+  const [reportType, setReportType] = useState<string>("");
+  const [reportFormat, setReportFormat] = useState<string>("");
+  const [dateStart, setDateStart] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generateSuccess, setGenerateSuccess] = useState<string | null>(null);
 
   async function fetchReports() {
     try {
       setLoading(true);
       setError(null);
-      const response = await getReports({ page: currentPage }) as ApiResponse<any>;
+      const response = await getReports({ page: currentPage }) as ApiResponse<{ data: Report[]; last_page: number }>;
 
       if (response?.success && response.data) {
         setReports(response.data.data || []);
@@ -44,20 +47,8 @@ export default function ReportsPage() {
         setError(response?.message || "Failed to load reports");
         setErrorType('server');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching reports:", err);
-      const message = err instanceof Error ? err.message : String(err);
-
-      if (message.includes('Unauthenticated') || message.includes('401')) {
-        setErrorType('auth');
-        setError('You need to login to view reports');
-      } else if (message.includes('500')) {
-        setErrorType('server');
-        setError(message);
-      } else {
-        setErrorType('network');
-        setError(message || "Failed to fetch reports");
-      }
       setReports([]);
     } finally {
       setLoading(false);
@@ -66,8 +57,70 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchReports();
+    fetchExportHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
+
+  async function fetchExportHistory() {
+    try {
+      const response = await getExportAuditLogs() as ApiResponse<ExportHistory[] | { data: ExportHistory[] }>;
+      if (response?.success && response.data) {
+        setExportHistory(Array.isArray(response.data) ? response.data : response.data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching export history:", err);
+    }
+  }
+
+  async function handleGenerateReport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reportType || !reportFormat) {
+      setGenerateError("Please select a report type and format");
+      return;
+    }
+    setGenerating(true);
+    setGenerateError(null);
+    setGenerateSuccess(null);
+    try {
+      const response = await generateReport({
+        report_type: reportType as "population_health" | "engagement" | "roi" | "risk_summary" | "program_completion",
+        format: reportFormat as "pdf" | "excel" | "csv",
+        ...(dateStart && { date_range_start: dateStart }),
+        ...(dateEnd && { date_range_end: dateEnd }),
+      }) as ApiResponse<unknown>;
+
+      if (response?.success) {
+        setGenerateSuccess("Report generation started. Check the Generated Reports tab.");
+        setReportType("");
+        setReportFormat("");
+        setDateStart("");
+        setDateEnd("");
+        fetchReports();
+      } else {
+        setGenerateError(response?.message || "Failed to generate report");
+      }
+    } catch (err: unknown) {
+      setGenerateError(err instanceof Error ? err.message : "Failed to generate report");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleDownloadReport(report: Report) {
+    try {
+      const blob = await downloadReport(report.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `report-${report.reportType}-${report.id}.${report.format.toLowerCase()}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err: unknown) {
+      console.error("Download failed:", err);
+    }
+  }
 
   const reportColumns = [
     {
@@ -109,7 +162,7 @@ export default function ReportsPage() {
       label: "Action",
       render: (value: string | undefined, row: Report) =>
         row.status === "COMPLETED" ? (
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => handleDownloadReport(row)}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
@@ -171,7 +224,7 @@ export default function ReportsPage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : (
                 <DataTable
@@ -196,16 +249,24 @@ export default function ReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-6">
+              <form className="space-y-6" onSubmit={handleGenerateReport}>
+                {generateError && (
+                  <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 text-sm">{generateError}</div>
+                )}
+                {generateSuccess && (
+                  <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 text-sm">{generateSuccess}</div>
+                )}
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Report Type *</Label>
                     <div className="grid gap-3 md:grid-cols-2">
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
                         <input
                           type="radio"
                           name="reportType"
-                          value="population-health"
+                          value="population_health"
+                          checked={reportType === "population_health"}
+                          onChange={(e) => setReportType(e.target.value)}
                           className="h-4 w-4"
                         />
                         <div>
@@ -215,11 +276,13 @@ export default function ReportsPage() {
                           </p>
                         </div>
                       </label>
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
                         <input
                           type="radio"
                           name="reportType"
                           value="engagement"
+                          checked={reportType === "engagement"}
+                          onChange={(e) => setReportType(e.target.value)}
                           className="h-4 w-4"
                         />
                         <div>
@@ -229,11 +292,13 @@ export default function ReportsPage() {
                           </p>
                         </div>
                       </label>
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
                         <input
                           type="radio"
                           name="reportType"
-                          value="program-completion"
+                          value="program_completion"
+                          checked={reportType === "program_completion"}
+                          onChange={(e) => setReportType(e.target.value)}
                           className="h-4 w-4"
                         />
                         <div>
@@ -243,17 +308,19 @@ export default function ReportsPage() {
                           </p>
                         </div>
                       </label>
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
                         <input
                           type="radio"
                           name="reportType"
-                          value="monthly-summary"
+                          value="risk_summary"
+                          checked={reportType === "risk_summary"}
+                          onChange={(e) => setReportType(e.target.value)}
                           className="h-4 w-4"
                         />
                         <div>
-                          <p className="font-medium">Monthly Summary</p>
+                          <p className="font-medium">Risk Summary</p>
                           <p className="text-xs text-muted-foreground">
-                            Comprehensive monthly overview
+                            Comprehensive risk overview
                           </p>
                         </div>
                       </label>
@@ -267,7 +334,9 @@ export default function ReportsPage() {
                         <input
                           type="radio"
                           name="format"
-                          value="PDF"
+                          value="pdf"
+                          checked={reportFormat === "pdf"}
+                          onChange={(e) => setReportFormat(e.target.value)}
                           className="h-4 w-4"
                         />
                         <span className="text-sm">PDF (Formatted Report)</span>
@@ -276,7 +345,9 @@ export default function ReportsPage() {
                         <input
                           type="radio"
                           name="format"
-                          value="CSV"
+                          value="csv"
+                          checked={reportFormat === "csv"}
+                          onChange={(e) => setReportFormat(e.target.value)}
                           className="h-4 w-4"
                         />
                         <span className="text-sm">CSV (Data Export)</span>
@@ -291,6 +362,8 @@ export default function ReportsPage() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <input
                           type="date"
+                          value={dateStart}
+                          onChange={(e) => setDateStart(e.target.value)}
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                         />
                       </div>
@@ -299,6 +372,8 @@ export default function ReportsPage() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <input
                           type="date"
+                          value={dateEnd}
+                          onChange={(e) => setDateEnd(e.target.value)}
                           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                         />
                       </div>
@@ -307,12 +382,12 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline">
+                  <Button type="button" variant="outline" onClick={() => { setReportType(""); setReportFormat(""); setDateStart(""); setDateEnd(""); }}>
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={generating}>
                     <FileText className="h-4 w-4 mr-2" />
-                    Generate Report
+                    {generating ? "Generating..." : "Generate Report"}
                   </Button>
                 </div>
               </form>
@@ -331,7 +406,7 @@ export default function ReportsPage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : (
                 <DataTable

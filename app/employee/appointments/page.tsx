@@ -30,7 +30,6 @@ export default function EmployeeAppointmentsPage() {
         setError(null);
 
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const response = (await getEmployeeAppointments({
                 filter: activeTab,
                 per_page: 50,

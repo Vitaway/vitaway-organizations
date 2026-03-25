@@ -60,11 +60,12 @@ export interface DashboardMetrics {
     low: number;
     medium: number;
     high: number;
+    critical: number;
   };
   outcomeIndicators?: {
-    improved: number;
-    stable: number;
-    declined: number;
+    avgHealthImprovement: number;
+    programCompletionRate: number;
+    costSavingsEstimated: number;
   };
 }
 
@@ -194,6 +195,7 @@ export enum AppointmentStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   NO_SHOW = 'no_show',
+  RESCHEDULED = 'rescheduled',
 }
 
 export enum ProviderType {
@@ -268,4 +270,100 @@ export interface AppointmentStatistics {
   cancelled: number;
   upcoming: number;
   completion_rate: number;
+}
+
+// Programs & Learning Management
+export type ProgramStatus = "draft" | "published" | "archived";
+export type ProgramContentType = "text" | "video" | "file";
+export type QuizQuestionType = "multiple_choice" | "true_false";
+
+export interface Program {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+  duration_weeks?: number;
+  is_active: boolean;
+  status: ProgramStatus;
+  thumbnail_url?: string | null;
+  assigned_roles?: string[] | null;
+  modules_count?: number;
+  enrollments_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  modules?: ProgramModule[];
+  quizzes?: ProgramQuiz[];
+}
+
+export interface ProgramModule {
+  id: number;
+  program_id: number;
+  title: string;
+  content_type: ProgramContentType;
+  content_text?: string | null;
+  content_url?: string | null;
+  content_file_path?: string | null;
+  position: number;
+  is_required: boolean;
+  estimated_minutes: number;
+  quiz?: ProgramQuiz | null;
+}
+
+export interface ProgramQuiz {
+  id: number;
+  program_id: number;
+  module_id?: number | null;
+  title: string;
+  description?: string | null;
+  passing_score: number;
+  max_attempts?: number | null;
+  is_active: boolean;
+  questions?: ProgramQuizQuestion[];
+}
+
+export interface ProgramQuizQuestion {
+  id?: number;
+  quiz_id?: number;
+  question_text: string;
+  question_type: QuizQuestionType;
+  points: number;
+  position: number;
+  answers: ProgramQuizAnswer[];
+}
+
+export interface ProgramQuizAnswer {
+  id?: number;
+  question_id?: number;
+  answer_text: string;
+  is_correct: boolean;
+  position: number;
+}
+
+export interface ProgramAssignmentResult {
+  created: number;
+  updated: number;
+  total_targets: number;
+}
+
+export interface ProgramProgressEnrollment {
+  id: number;
+  employee_id: number;
+  program_id: number;
+  status: string;
+  enrolled_at: string;
+  completed_at?: string | null;
+  progress_percentage?: number | string;
+  employee?: {
+    id: number;
+    firstname: string;
+    lastname: string;
+    email: string;
+  };
+  progress_summary?: {
+    total_modules: number;
+    completed_modules: number;
+    progress_percentage: number;
+    latest_quiz_score?: number | null;
+    latest_quiz_passed?: boolean | null;
+  };
 }

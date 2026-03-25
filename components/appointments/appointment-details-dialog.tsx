@@ -57,7 +57,6 @@ export function AppointmentDetailsDialog({
         setLoading(true);
 
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const response = (await updateAppointmentStatus(appointment.id, {
                 status: newStatus,
                 ...(newStatus === "cancelled" && { cancellation_reason: cancellationReason }),

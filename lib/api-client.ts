@@ -4,9 +4,10 @@
  * All API calls must include organization context for tenant isolation
  */
 
-import { ApiResponse, PaginatedResponse, PaginationParams } from "@/types";
+import { PaginationParams } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/org";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/organization";
 
 class ApiError extends Error {
   constructor(
@@ -28,11 +29,23 @@ function getToken(): string | null {
 function setToken(token: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("auth_token", token);
+  document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
 function removeToken(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem("auth_token");
+  document.cookie = "auth_token=; path=/; max-age=0";
+}
+
+function clearAuthStorage(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("organization");
+  localStorage.removeItem("role");
+  localStorage.removeItem("permissions");
+  document.cookie = "auth_token=; path=/; max-age=0";
 }
 
 async function fetchApi<T>(
@@ -66,7 +79,10 @@ async function fetchApi<T>(
       
       // If unauthorized, remove token
       if (response.status === 401) {
-        removeToken();
+        clearAuthStorage();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+        }
       }
       
       throw new ApiError(
@@ -115,12 +131,49 @@ export async function logout() {
 }
 
 export async function refreshToken() {
-  return fetchApi("/auth/refresh", { method: "POST" });
+  const response = await fetchApi<any>("/auth/refresh", { method: "POST" });
+  if (response?.success && response.data?.token) {
+    setToken(response.data.token);
+  }
+  return response;
+}
+
+export async function forgotPassword(email: string) {
+  return fetchApi<{ success: boolean; message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(data: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}) {
+  return fetchApi<{ success: boolean; message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 // Organization Profile
 export async function getOrganizationProfile() {
   return fetchApi("/profile");
+}
+
+export async function updateOrganizationProfile(data: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+}) {
+  return fetchApi("/profile", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 // Dashboard Metrics
@@ -152,8 +205,8 @@ export async function addEmployee(data: {
   firstname: string;
   lastname: string;
   email: string;
-  phone: string;
-  employee_identifier: string;
+  phone?: string;
+  employee_identifier?: string;
   initial_programs?: string[];
   password?: string;
 }) {
@@ -195,16 +248,176 @@ export async function assignEmployeeToProgram(
 }
 
 export async function sendNotification(data: {
-  recipient_type: "all" | "inactive" | "custom";
+  recipient_type: "all" | "specific" | "segment";
   title: string;
   message: string;
-  delivery_method?: "email" | "sms" | "both";
+  delivery_method?: "email" | "in_app" | "both";
   recipient_ids?: string[];
 }) {
   return fetchApi("/notifications", {
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+// Programs & Learning Management
+export async function getPrograms(params?: { status?: string; per_page?: number; page?: number }) {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append("status", params.status);
+  if (params?.per_page) queryParams.append("per_page", params.per_page.toString());
+  if (params?.page) queryParams.append("page", params.page.toString());
+  const url = `/programs${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
+}
+
+export async function getProgram(programId: number) {
+  return fetchApi(`/programs/${programId}`);
+}
+
+export async function getProgramModules(programId: number) {
+  return fetchApi(`/programs/${programId}/modules?per_page=100`);
+}
+
+export async function getProgramModule(programId: number, moduleId: number) {
+  return fetchApi(`/programs/${programId}/modules/${moduleId}`);
+}
+
+export async function getProgramQuizzes(programId: number) {
+  return fetchApi(`/programs/${programId}/quizzes?per_page=100`);
+}
+
+export async function getProgramQuiz(programId: number, quizId: number) {
+  return fetchApi(`/programs/${programId}/quizzes/${quizId}`);
+}
+
+export async function createProgram(data: {
+  name: string;
+  description?: string;
+  category?: string;
+  duration_weeks?: number;
+  is_active?: boolean;
+  status?: string;
+  thumbnail_url?: string;
+  assigned_roles?: string[];
+}) {
+  return fetchApi("/programs", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProgram(programId: number, data: {
+  name?: string;
+  description?: string;
+  category?: string;
+  duration_weeks?: number;
+  is_active?: boolean;
+  status?: string;
+  thumbnail_url?: string;
+  assigned_roles?: string[];
+}) {
+  return fetchApi(`/programs/${programId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProgram(programId: number) {
+  return fetchApi(`/programs/${programId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function createProgramModule(programId: number, data: {
+  title: string;
+  content_type: "text" | "video" | "file";
+  content_text?: string;
+  content_url?: string;
+  content_file_path?: string;
+  position?: number;
+  is_required?: boolean;
+  estimated_minutes?: number;
+}) {
+  return fetchApi(`/programs/${programId}/modules`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProgramModule(programId: number, moduleId: number, data: {
+  title?: string;
+  content_type?: "text" | "video" | "file";
+  content_text?: string;
+  content_url?: string;
+  content_file_path?: string;
+  position?: number;
+  is_required?: boolean;
+  estimated_minutes?: number;
+}) {
+  return fetchApi(`/programs/${programId}/modules/${moduleId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProgramModule(programId: number, moduleId: number) {
+  return fetchApi(`/programs/${programId}/modules/${moduleId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function createProgramQuiz(programId: number, data: {
+  module_id?: number | null;
+  title: string;
+  description?: string;
+  passing_score?: number;
+  max_attempts?: number | null;
+  is_active?: boolean;
+  questions?: any[];
+}) {
+  return fetchApi(`/programs/${programId}/quizzes`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProgramQuiz(programId: number, quizId: number, data: {
+  title?: string;
+  description?: string;
+  passing_score?: number;
+  max_attempts?: number | null;
+  is_active?: boolean;
+  questions?: any[];
+}) {
+  return fetchApi(`/programs/${programId}/quizzes/${quizId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProgramQuiz(programId: number, quizId: number) {
+  return fetchApi(`/programs/${programId}/quizzes/${quizId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function assignProgram(programId: number, data: {
+  employee_ids?: number[];
+  roles?: string[];
+  assign_all?: boolean;
+}) {
+  return fetchApi(`/programs/${programId}/assign`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getProgramProgress(programId: number, params?: { per_page?: number; page?: number }) {
+  const queryParams = new URLSearchParams();
+  if (params?.per_page) queryParams.append("per_page", params.per_page.toString());
+  if (params?.page) queryParams.append("page", params.page.toString());
+  const url = `/programs/${programId}/progress${queryParams.toString() ? `?${queryParams}` : ""}`;
+  return fetchApi(url);
 }
 
 // Reports
@@ -397,4 +610,50 @@ export async function getAvailablePartners() {
   return fetchApi("/appointments/available-partners");
 }
 
-export { ApiError, getToken, setToken, removeToken };
+/**
+ * Axios-style API client wrapper for use in hooks
+ * Provides .get(), .post(), .put(), .delete() methods
+ * that wrap fetchApi with a consistent response shape
+ */
+export const apiClient = {
+  async get(endpoint: string, config?: { params?: Record<string, any> }) {
+    let url = endpoint;
+    if (config?.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(config.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+      const qs = queryParams.toString();
+      if (qs) url += `?${qs}`;
+    }
+    const result = await fetchApi<any>(url);
+    return { data: result };
+  },
+
+  async post(endpoint: string, data?: any) {
+    const result = await fetchApi<any>(endpoint, {
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    return { data: result };
+  },
+
+  async put(endpoint: string, data?: any) {
+    const result = await fetchApi<any>(endpoint, {
+      method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    return { data: result };
+  },
+
+  async delete(endpoint: string) {
+    const result = await fetchApi<any>(endpoint, {
+      method: "DELETE",
+    });
+    return { data: result };
+  },
+};
+
+export { ApiError, getToken, setToken, removeToken, clearAuthStorage };

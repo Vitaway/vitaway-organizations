@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ApiResponse } from "@/types";
 import { AlertCircle } from "lucide-react";
-import { getPopulationHealth } from "@/lib/api-client";
+import { getPopulationHealth, ApiError } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function PopulationHealthPage() {
@@ -36,13 +36,18 @@ export default function PopulationHealthPage() {
     } catch (err: any) {
       console.error("Error fetching population health data:", err);
       const message = err instanceof Error ? err.message : String(err);
-      
-      if (message.includes('Unauthenticated') || message.includes('401')) {
-        setErrorType('auth');
-        setError('You need to login to view this data');
-      } else if (message.includes('500')) {
-        setErrorType('server');
-        setError(message);
+
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setErrorType('auth');
+          setError('You need to login to view this data');
+        } else if (err.status >= 500) {
+          setErrorType('server');
+          setError(err.message);
+        } else {
+          setErrorType('network');
+          setError(err.message || "Failed to fetch population health data");
+        }
       } else {
         setErrorType('network');
         setError(message || "Failed to fetch population health data");
@@ -55,15 +60,14 @@ export default function PopulationHealthPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading population health data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading population health data...</p>
         </div>
       </div>
     );
@@ -76,9 +80,9 @@ export default function PopulationHealthPage() {
           <h1 className="text-3xl font-bold tracking-tight">Population Health Overview</h1>
           <p className="text-muted-foreground">Aggregated health metrics and risk analysis</p>
         </div>
-        <Card className={errorType === 'auth' ? "border-yellow-200 bg-yellow-50" : "border-red-200 bg-red-50"}>
+        <Card className={errorType === 'auth' ? "border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20" : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"}>
           <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${errorType === 'auth' ? 'text-yellow-900' : 'text-red-900'}`}>
+            <CardTitle className={`flex items-center gap-2 ${errorType === 'auth' ? 'text-yellow-900 dark:text-yellow-400' : 'text-red-900 dark:text-red-400'}`}>
               <AlertCircle className="h-5 w-5" />
               {errorType === 'auth' ? 'Authentication Required' : 'Error Loading Data'}
             </CardTitle>
