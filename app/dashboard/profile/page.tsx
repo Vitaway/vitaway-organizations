@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Building2, Mail, Phone, MapPin } from "lucide-react";
 import { getOrganizationProfile, updateOrganizationProfile } from "@/lib/api-client";
+import { PageLoading } from "@/components/ui/page-loading";
+import { PageError } from "@/components/ui/page-error";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { ApiResponse } from "@/types";
 
 interface OrganizationProfile {
   id: number;
@@ -29,84 +32,71 @@ interface OrganizationProfile {
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<OrganizationProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  // â€”â€”â€” Profile (read) â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  const {
+    data: profile,
+    loading,
+    error,
+    errorType,
+    retry: retryProfile,
+  } = useApiQuery(async () => {
+    const response = (await getOrganizationProfile()) as ApiResponse<OrganizationProfile>;
+    if (!response?.success || !response.data) throw new Error(response?.message || "Failed to load profile");
+    return response.data;
+  }, []);
 
-  // Editable fields
+  // â€”â€”â€” Edit form state â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
+  // Sync form when profile loads
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  async function fetchProfile() {
-    try {
-      setLoading(true);
-      const response = (await getOrganizationProfile()) as any;
-      if (response?.success && response.data) {
-        const data = response.data;
-        setProfile(data);
-        setName(data.name || "");
-        setEmail(data.email || "");
-        setPhone(data.phone || "");
-        setAddress(data.address || "");
-        setCity(data.city || "");
-        setCountry(data.country || "");
-      }
-    } catch (err: any) {
-      setError(err instanceof Error ? err.message : "Failed to load profile");
-    } finally {
-      setLoading(false);
+    if (profile) {
+      setName(profile.name ?? "");
+      setEmail(profile.email ?? "");
+      setPhone(profile.phone ?? "");
+      setAddress(profile.address ?? "");
+      setCity(profile.city ?? "");
+      setCountry(profile.country ?? "");
     }
-  }
+  }, [profile]);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
+    setSaveError(null);
+    setSaveSuccess(null);
     setSaving(true);
     try {
       const response = (await updateOrganizationProfile({
-        name,
-        email,
-        phone,
-        address,
-        city,
-        country,
-      })) as any;
+        name, email, phone, address, city, country,
+      })) as ApiResponse<unknown>;
       if (response?.success) {
-        setSuccess("Profile updated successfully");
-        fetchProfile();
+        setSaveSuccess("Profile updated successfully");
+        retryProfile();
       } else {
-        setError(response?.message || "Failed to update profile");
+        setSaveError((response as { message?: string })?.message || "Failed to update profile");
       }
-    } catch (err: any) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full py-12">
-        <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
-      </div>
-    );
-  }
+  if (loading) return <PageLoading message="Loading organization profileâ€¦" />;
+  if (error) return <PageError error={error} errorType={errorType} onRetry={retryProfile} />;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Organization Profile</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Organization Profile</h1>
         <p className="text-muted-foreground">Manage your organization details and subscription</p>
       </div>
 
@@ -154,11 +144,11 @@ export default function ProfilePage() {
           <CardDescription>Update your organization contact and location information</CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</div>
+          {saveError && (
+            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{saveError}</div>
           )}
-          {success && (
-            <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{success}</div>
+          {saveSuccess && (
+            <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{saveSuccess}</div>
           )}
           <form onSubmit={handleUpdate} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -204,4 +194,23 @@ export default function ProfilePage() {
       </Card>
     </div>
   );
+}
+
+
+interface OrganizationProfile {
+  id: number;
+  name: string;
+  code: string;
+  type: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  status: string;
+  subscription_plan: string;
+  max_users: number;
+  subscription_start_date: string;
+  subscription_end_date: string;
+  created_at: string;
 }

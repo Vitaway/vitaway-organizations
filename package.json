@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node scripts/seed.mjs all",
+    "seed:employees": "node scripts/seed.mjs employees",
+    "seed:programs": "node scripts/seed.mjs programs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

@@ -1,7 +1,9 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DataTable } from "@/components/dashboard/data-table";
+import { PageLoading } from "@/components/ui/page-loading";
+import { PageError } from "@/components/ui/page-error";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,15 +17,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Report, ExportHistory, ApiResponse } from "@/types";
 import { FileText, Download, Calendar } from "lucide-react";
 import { getReports, generateReport, downloadReport, getExportAuditLogs } from "@/lib/api-client";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [exportHistory, setExportHistory] = useState<ExportHistory[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
 
-  // Generate form state
+  // â€”â€”â€” Report list (read) â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  const {
+    data: reportData,
+    loading,
+    error,
+    errorType,
+    retry: refetchReports,
+  } = useApiQuery(async () => {
+    const res = (await getReports({ page: currentPage })) as ApiResponse<{ data: Report[]; last_page: number }>;
+    if (!res?.success || !res.data) throw new Error(res?.message || "Failed to load reports.");
+    return { reports: res.data.data || [], totalPages: res.data.last_page || 1 };
+  }, [currentPage]);
+
+  const reports = reportData?.reports ?? [];
+  const totalPages = reportData?.totalPages ?? 1;
+
+  // â€”â€”â€” Export history (read) â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  const { data: exportHistoryData, loading: exportLoading } = useApiQuery(async () => {
+    const res = (await getExportAuditLogs()) as ApiResponse<ExportHistory[] | { data: ExportHistory[] }>;
+    if (!res?.success || !res.data) return [];
+    return Array.isArray(res.data) ? res.data : (res.data as { data: ExportHistory[] }).data ?? [];
+  }, []);
+
+  const exportHistory = exportHistoryData ?? [];
+
+  // â€”â€”â€” Generate form state â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
   const [reportType, setReportType] = useState<string>("");
   const [reportFormat, setReportFormat] = useState<string>("");
   const [dateStart, setDateStart] = useState("");
@@ -31,42 +55,6 @@ export default function ReportsPage() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [generateSuccess, setGenerateSuccess] = useState<string | null>(null);
-
-  async function fetchReports() {
-    try {
-      setLoading(true);
-      const response = await getReports({ page: currentPage }) as ApiResponse<{ data: Report[]; last_page: number }>;
-
-      if (response?.success && response.data) {
-        setReports(response.data.data || []);
-        setTotalPages(response.data.last_page || 1);
-      } else {
-        setReports([]);
-      }
-    } catch (err: unknown) {
-      console.error("Error fetching reports:", err);
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchReports();
-    fetchExportHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
-
-  async function fetchExportHistory() {
-    try {
-      const response = await getExportAuditLogs() as ApiResponse<ExportHistory[] | { data: ExportHistory[] }>;
-      if (response?.success && response.data) {
-        setExportHistory(Array.isArray(response.data) ? response.data : response.data.data || []);
-      }
-    } catch (err) {
-      console.error("Error fetching export history:", err);
-    }
-  }
 
   async function handleGenerateReport(e: React.FormEvent) {
     e.preventDefault();
@@ -91,7 +79,7 @@ export default function ReportsPage() {
         setReportFormat("");
         setDateStart("");
         setDateEnd("");
-        fetchReports();
+        refetchReports();
       } else {
         setGenerateError(response?.message || "Failed to generate report");
       }
@@ -119,10 +107,7 @@ export default function ReportsPage() {
   }
 
   const reportColumns = [
-    {
-      key: "reportType",
-      label: "Report Type",
-    },
+    { key: "reportType", label: "Report Type" },
     {
       key: "format",
       label: "Format",
@@ -143,23 +128,24 @@ export default function ReportsPage() {
       render: (value: unknown) => {
         const v = String(value);
         return (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${v === "COMPLETED"
-              ? "bg-green-100 text-green-800"
-              : v === "GENERATING"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-red-100 text-red-800"
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              v === "COMPLETED"
+                ? "bg-green-100 text-green-800"
+                : v === "GENERATING"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-red-100 text-red-800"
             }`}
-        >
-          {v}
-        </span>
+          >
+            {v}
+          </span>
         );
       },
     },
     {
       key: "downloadUrl",
       label: "Action",
-      render: (value: unknown, row: Report) =>
+      render: (_value: unknown, row: Report) =>
         row.status === "COMPLETED" ? (
           <Button variant="outline" size="sm" onClick={() => handleDownloadReport(row)}>
             <Download className="h-4 w-4 mr-2" />
@@ -170,36 +156,17 @@ export default function ReportsPage() {
   ];
 
   const exportColumns = [
-    {
-      key: "dataType",
-      label: "Data Type",
-    },
-    {
-      key: "format",
-      label: "Format",
-    },
-    {
-      key: "recordCount",
-      label: "Records",
-      render: (value: unknown) => Number(value).toLocaleString(),
-    },
-    {
-      key: "exportedBy",
-      label: "Exported By",
-    },
-    {
-      key: "exportedAt",
-      label: "Exported At",
-      render: (value: unknown) => new Date(String(value)).toLocaleString(),
-    },
+    { key: "dataType", label: "Data Type" },
+    { key: "format", label: "Format" },
+    { key: "recordCount", label: "Records", render: (value: unknown) => Number(value).toLocaleString() },
+    { key: "exportedBy", label: "Exported By" },
+    { key: "exportedAt", label: "Exported At", render: (value: unknown) => new Date(String(value)).toLocaleString() },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Reports & Exports
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Reports &amp; Exports</h1>
         <p className="text-muted-foreground">
           Generate reports and export data for internal review and compliance
         </p>
@@ -216,15 +183,13 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Generated Reports</CardTitle>
-              <CardDescription>
-                View and download previously generated reports
-              </CardDescription>
+              <CardDescription>View and download previously generated reports</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
+                <PageLoading message="Loading reportsâ€¦" />
+              ) : error ? (
+                <PageError error={error} errorType={errorType} onRetry={refetchReports} />
               ) : (
                 <DataTable
                   data={reports}
@@ -243,152 +208,113 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Generate New Report</CardTitle>
-              <CardDescription>
-                Create a formal summary report for internal review
-              </CardDescription>
+              <CardDescription>Create a formal summary report for internal review</CardDescription>
             </CardHeader>
             <CardContent>
               <form className="space-y-6" onSubmit={handleGenerateReport}>
                 {generateError && (
-                  <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 text-sm">{generateError}</div>
+                  <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 text-sm">
+                    {generateError}
+                  </div>
                 )}
                 {generateSuccess && (
-                  <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 text-sm">{generateSuccess}</div>
+                  <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 text-sm">
+                    {generateSuccess}
+                  </div>
                 )}
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Report Type *</Label>
                     <div className="grid gap-3 md:grid-cols-2">
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
-                        <input
-                          type="radio"
-                          name="reportType"
-                          value="population_health"
-                          checked={reportType === "population_health"}
-                          onChange={(e) => setReportType(e.target.value)}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <p className="font-medium">Population Health Summary</p>
-                          <p className="text-xs text-muted-foreground">
-                            Aggregated health metrics and risk distribution
-                          </p>
-                        </div>
-                      </label>
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
-                        <input
-                          type="radio"
-                          name="reportType"
-                          value="engagement"
-                          checked={reportType === "engagement"}
-                          onChange={(e) => setReportType(e.target.value)}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <p className="font-medium">Engagement Analytics</p>
-                          <p className="text-xs text-muted-foreground">
-                            Platform usage and participation metrics
-                          </p>
-                        </div>
-                      </label>
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
-                        <input
-                          type="radio"
-                          name="reportType"
-                          value="program_completion"
-                          checked={reportType === "program_completion"}
-                          onChange={(e) => setReportType(e.target.value)}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <p className="font-medium">Program Completion</p>
-                          <p className="text-xs text-muted-foreground">
-                            Health program participation and outcomes
-                          </p>
-                        </div>
-                      </label>
-                      <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
-                        <input
-                          type="radio"
-                          name="reportType"
-                          value="risk_summary"
-                          checked={reportType === "risk_summary"}
-                          onChange={(e) => setReportType(e.target.value)}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <p className="font-medium">Risk Summary</p>
-                          <p className="text-xs text-muted-foreground">
-                            Comprehensive risk overview
-                          </p>
-                        </div>
-                      </label>
+                      {(
+                        [
+                          { value: "population_health", label: "Population Health Summary", desc: "Aggregated health metrics and risk distribution" },
+                          { value: "engagement", label: "Engagement Analytics", desc: "Platform usage and participation metrics" },
+                          { value: "program_completion", label: "Program Completion", desc: "Employee program progress and completion rates" },
+                          { value: "roi", label: "ROI Analysis", desc: "Return on investment for wellness programs" },
+                          { value: "risk_summary", label: "Risk Summary", desc: "Health risk stratification overview" },
+                        ] as const
+                      ).map(({ value, label, desc }) => (
+                        <label key={value} className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted">
+                          <input
+                            type="radio"
+                            name="reportType"
+                            value={value}
+                            checked={reportType === value}
+                            onChange={(e) => setReportType(e.target.value)}
+                            className="h-4 w-4"
+                          />
+                          <div>
+                            <p className="font-medium">{label}</p>
+                            <p className="text-xs text-muted-foreground">{desc}</p>
+                          </div>
+                        </label>
+                      ))}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Output Format *</Label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="format"
-                          value="pdf"
-                          checked={reportFormat === "pdf"}
-                          onChange={(e) => setReportFormat(e.target.value)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-sm">PDF (Formatted Report)</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="format"
-                          value="csv"
-                          checked={reportFormat === "csv"}
-                          onChange={(e) => setReportFormat(e.target.value)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-sm">CSV (Data Export)</span>
-                      </label>
+                    <Label>Format *</Label>
+                    <div className="flex gap-3">
+                      {(["pdf", "excel", "csv"] as const).map((fmt) => (
+                        <label key={fmt} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="reportFormat"
+                            value={fmt}
+                            checked={reportFormat === fmt}
+                            onChange={(e) => setReportFormat(e.target.value)}
+                            className="h-4 w-4"
+                          />
+                          <span className="font-medium uppercase text-sm">{fmt}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Date Range</Label>
-                    <div className="flex gap-4 items-center">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <input
-                          type="date"
-                          value={dateStart}
-                          onChange={(e) => setDateStart(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">to</span>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <input
-                          type="date"
-                          value={dateEnd}
-                          onChange={(e) => setDateEnd(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                        />
-                      </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="dateStart">
+                        <Calendar className="inline h-4 w-4 mr-1" />
+                        Date Range Start
+                      </Label>
+                      <input
+                        id="dateStart"
+                        type="date"
+                        value={dateStart}
+                        onChange={(e) => setDateStart(e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dateEnd">
+                        <Calendar className="inline h-4 w-4 mr-1" />
+                        Date Range End
+                      </Label>
+                      <input
+                        id="dateEnd"
+                        type="date"
+                        value={dateEnd}
+                        onChange={(e) => setDateEnd(e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setReportType(""); setReportFormat(""); setDateStart(""); setDateEnd(""); }}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={generating}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    {generating ? "Generating..." : "Generate Report"}
-                  </Button>
-                </div>
+                <Button type="submit" disabled={generating || !reportType || !reportFormat}>
+                  {generating ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Generatingâ€¦
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Report
+                    </>
+                  )}
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -398,23 +324,19 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Export History</CardTitle>
-              <CardDescription>
-                Audit trail of all data exports
-              </CardDescription>
+              <CardDescription>Audit trail for all data exports from your organization</CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
+              {exportLoading ? (
+                <PageLoading message="Loading export historyâ€¦" />
               ) : (
                 <DataTable
                   data={exportHistory}
                   columns={exportColumns}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  emptyMessage="No export history available"
+                  currentPage={1}
+                  totalPages={1}
+                  onPageChange={() => {}}
+                  emptyMessage="No export history recorded"
                 />
               )}
             </CardContent>

@@ -13,6 +13,7 @@ import {
   CalendarDays,
   UserCircle,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -66,7 +67,7 @@ const navigation = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const { user, organization, logout } = useAuth();
 
@@ -77,13 +78,23 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground shadow-xl">
       {/* Logo/Brand */}
-      <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
+      <div className="flex h-16 items-center justify-between px-6 border-sidebar-border">
         <h1 className="text-xl font-bold text-sidebar-foreground">Vitaway</h1>
+        {/* Close button — only visible on mobile */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Close navigation"
+            className="lg:hidden flex items-center justify-center h-8 w-8 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-border transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Organization Info */}
       {organization && (
-        <div className="px-6 py-4 bg-sidebar-accent border-b border-sidebar-border">
+        <div className="px-6 py-4 bg-sidebar-accent">
           <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wide font-medium">Organization</p>
           <p className="text-sm font-semibold text-sidebar-foreground mt-1">{organization.name}</p>
           <p className="text-xs text-sidebar-foreground/60 mt-0.5">{organization.code}</p>

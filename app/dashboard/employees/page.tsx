@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { DataTable } from "@/components/dashboard/data-table";
+import { PageLoading } from "@/components/ui/page-loading";
+import { PageError } from "@/components/ui/page-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,21 +16,40 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Employee, ApiResponse } from "@/types";
-import { UserPlus, Upload, Send, AlertCircle, CheckCircle } from "lucide-react";
+import { UserPlus, Upload, Send, CheckCircle, AlertCircle } from "lucide-react";
 import { getEmployees, addEmployee, bulkUploadEmployees, sendNotification, ApiError } from "@/lib/api-client";
-import { useAuth } from "@/contexts/auth-context";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<'auth' | 'server' | 'network'>('network');
-  const router = useRouter();
-  const { isAuthenticated } = useAuth();
 
-  // Add employee form state
+  // ——— Employee list (read) ————————————————————————————————————————
+  const {
+    data: employeeResponse,
+    loading,
+    error,
+    errorType,
+    retry: refetchEmployees,
+  } = useApiQuery(
+    async () => {
+      const res = (await getEmployees({ page: currentPage })) as ApiResponse<Employee[]> & {
+        total?: number;
+      };
+      if (!res?.success || !res.data) {
+        throw new Error(res?.message || "Failed to load employees.");
+      }
+      return {
+        employees: Array.isArray(res.data) ? res.data : [],
+        totalPages: Math.ceil((res.total ?? 0) / 10),
+      };
+    },
+    [currentPage]
+  );
+
+  const employees = employeeResponse?.employees ?? [];
+  const totalPages = employeeResponse?.totalPages ?? 1;
+
+  // ——— Add employee form ——————————————————————————————————————————
   const [addEmployeeForm, setAddEmployeeForm] = useState({
     firstname: "",
     lastname: "",
@@ -44,68 +64,19 @@ export default function EmployeesPage() {
   const [addEmployeeSuccess, setAddEmployeeSuccess] = useState(false);
   const [addEmployeeResponseData, setAddEmployeeResponseData] = useState<Record<string, unknown> | null>(null);
 
-  // Bulk upload state
+  // ——— Bulk upload ————————————————————————————————————————————————
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkSuccess, setBulkSuccess] = useState<string | null>(null);
 
-  // Notification state
+  // ——— Notifications —————————————————————————————————————————————
   const [notifySubject, setNotifySubject] = useState("");
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifyRecipients, setNotifyRecipients] = useState("all");
   const [notifySending, setNotifySending] = useState(false);
   const [notifyError, setNotifyError] = useState<string | null>(null);
   const [notifySuccess, setNotifySuccess] = useState<string | null>(null);
-
-  async function fetchEmployees() {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getEmployees({ page: currentPage }) as ApiResponse<Employee[]> & { total?: number };
-
-      if (response?.success && response.data) {
-        // API returns { success: true, data: [...], total: 250 }
-        setEmployees(Array.isArray(response.data) ? response.data : []);
-        // Calculate total pages if we have a total count (assuming 10 per page)
-        const total = response.total || 0;
-        setTotalPages(Math.ceil(total / 10));
-        setError(null);
-      } else {
-        setEmployees([]);
-        setError(response?.message || "Failed to load employees");
-        setErrorType('server');
-      }
-    } catch (err: unknown) {
-      console.error("Error fetching employees:", err);
-      const message = err instanceof Error ? err.message : String(err);
-
-      if (err instanceof ApiError) {
-        if (err.status === 401) {
-          setErrorType('auth');
-          setError('You need to login to view employees');
-        } else if (err.status >= 500) {
-          setErrorType('server');
-          setError(err.message);
-        } else {
-          setErrorType('network');
-          setError(err.message || "Failed to fetch employees");
-        }
-      } else {
-        setErrorType('network');
-        setError(message || "Failed to fetch employees");
-      }
-
-      setEmployees([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchEmployees();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
 
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,12 +112,7 @@ export default function EmployeesPage() {
           password: "",
         });
         // Refresh employee list
-        const employeesResponse = await getEmployees({ page: currentPage }) as ApiResponse<Employee[]> & { total?: number };
-        if (employeesResponse.success && employeesResponse.data) {
-          setEmployees(Array.isArray(employeesResponse.data) ? employeesResponse.data : []);
-          const total = employeesResponse.total || 0;
-          setTotalPages(Math.ceil(total / 10));
-        }
+        refetchEmployees();
       } else {
         setAddEmployeeError(response.message || "Failed to add employee");
         if (response.errors) {
@@ -191,7 +157,7 @@ export default function EmployeesPage() {
         // Reset file input
         const fileInput = document.getElementById("csvUpload") as HTMLInputElement;
         if (fileInput) fileInput.value = "";
-        fetchEmployees();
+        refetchEmployees();
       } else {
         setBulkError(response.message || "Upload failed");
       }
@@ -313,16 +279,16 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Employee Management
           </h1>
           <p className="text-muted-foreground">
             Onboard and manage employees within your organization
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline">
             <Upload className="h-4 w-4 mr-2" />
             Bulk Upload
@@ -352,28 +318,9 @@ export default function EmployeesPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
+                <PageLoading message="Loading employees…" />
               ) : error ? (
-                <div className={errorType === 'auth' ? 'p-4 rounded-lg border flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' : 'p-4 rounded-lg border flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'}>
-                  <AlertCircle className={errorType === 'auth' ? 'h-5 w-5 mt-0.5 text-yellow-600 dark:text-yellow-400' : 'h-5 w-5 mt-0.5 text-red-600 dark:text-red-400'} />
-                  <div className="flex-1">
-                    <p className={errorType === 'auth' ? 'text-sm font-medium text-yellow-900 dark:text-yellow-400' : 'text-sm font-medium text-red-900 dark:text-red-400'}>
-                      {errorType === 'auth' ? 'Authentication Required' : 'Error Loading Employees'}
-                    </p>
-                    <p className={errorType === 'auth' ? 'text-xs mt-1 text-yellow-700 dark:text-yellow-500' : 'text-xs mt-1 text-red-700 dark:text-red-500'}>{error}</p>
-                    <div className="flex gap-2 mt-3">
-                      {errorType === 'auth' && !isAuthenticated ? (
-                        <Button onClick={() => router.push('/login')} size="sm">Go to Login</Button>
-                      ) : (
-                        <Button onClick={() => fetchEmployees()} size="sm" disabled={loading}>
-                          {loading ? 'Retrying...' : 'Retry'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <PageError error={error} errorType={errorType} onRetry={refetchEmployees} />
               ) : (
                 <DataTable
                   data={employees}

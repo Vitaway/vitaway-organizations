@@ -1,15 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+﻿"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { getAccessLogs, getExportAuditLogs } from "@/lib/api-client";
+import { PageLoading } from "@/components/ui/page-loading";
+import { PageError } from "@/components/ui/page-error";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { ApiResponse } from "@/types";
 
 interface AuditLog {
   id: number;
@@ -17,7 +20,7 @@ interface AuditLog {
   description: string;
   user_id: number;
   created_at: string;
-  activity_data?: Record<string, any>;
+  activity_data?: Record<string, unknown>;
 }
 
 interface PaginationMeta {
@@ -27,80 +30,57 @@ interface PaginationMeta {
   last_page: number;
 }
 
+interface ExportLog {
+  filename?: string;
+  data?: { filename?: string; total_records?: number };
+  total_records?: number;
+  created_at?: string;
+}
+
 export default function AuditLogsPage() {
-  // Access logs tab
-  const [accessLogs, setAccessLogs] = useState<AuditLog[]>([]);
-  const [accessMeta, setAccessMeta] = useState<PaginationMeta | null>(null);
-  const [accessLoading, setAccessLoading] = useState(true);
   const [accessPage, setAccessPage] = useState(1);
   const [dateFilter, setDateFilter] = useState("");
 
-  // Export logs tab
-  const [exportLogs, setExportLogs] = useState<any[]>([]);
-  const [exportLoading, setExportLoading] = useState(false);
+  // â€”â€”â€” Access logs â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  const {
+    data: accessData,
+    loading: accessLoading,
+    error: accessError,
+    errorType: accessErrorType,
+    retry: retryAccessLogs,
+  } = useApiQuery(async () => {
+    const params: { per_page: number; date_start?: string } = { per_page: 20 };
+    if (dateFilter) params.date_start = dateFilter;
+    const response = (await getAccessLogs(params)) as ApiResponse<AuditLog[]> & { meta?: PaginationMeta };
+    if (!response?.success) throw new Error("Failed to load access logs");
+    return { logs: (response.data ?? []) as AuditLog[], meta: (response as { meta?: PaginationMeta }).meta ?? null };
+  }, [accessPage, dateFilter]);
 
-  const [error, setError] = useState<string | null>(null);
+  const accessLogs = accessData?.logs ?? [];
+  const accessMeta = accessData?.meta ?? null;
 
-  const fetchAccessLogs = useCallback(async () => {
-    try {
-      setAccessLoading(true);
-      setError(null);
-      const params: any = { per_page: 20 };
-      if (dateFilter) params.date_start = dateFilter;
-
-      const response = (await getAccessLogs(params)) as any;
-      if (response?.success) {
-        setAccessLogs(response.data || []);
-        setAccessMeta(response.meta || null);
-      }
-    } catch (err: any) {
-      setError(err instanceof Error ? err.message : "Failed to load access logs");
-    } finally {
-      setAccessLoading(false);
-    }
-  }, [dateFilter]);
-
-  const fetchExportLogs = useCallback(async () => {
-    try {
-      setExportLoading(true);
-      const response = (await getExportAuditLogs()) as any;
-      if (response?.success) {
-        setExportLogs(response.data || []);
-      }
-    } catch {
-      // Export logs may not be available
-    } finally {
-      setExportLoading(false);
-    }
+  // â€”â€”â€” Export logs â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+  const { data: exportLogsData, loading: exportLoading } = useApiQuery(async () => {
+    const response = (await getExportAuditLogs()) as ApiResponse<ExportLog[]>;
+    return response?.success ? (response.data ?? []) : [];
   }, []);
 
-  useEffect(() => {
-    fetchAccessLogs();
-  }, [accessPage, fetchAccessLogs]);
-
-  useEffect(() => {
-    fetchExportLogs();
-  }, [fetchExportLogs]);
+  const exportLogs = exportLogsData ?? [];
 
   const getActivityBadge = (type: string) => {
     switch (type) {
-      case "login":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "logout":
-        return "bg-muted text-muted-foreground";
-      case "data_export":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "settings_change":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      default:
-        return "bg-muted text-muted-foreground";
+      case "login": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+      case "logout": return "bg-muted text-muted-foreground";
+      case "data_export": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      case "settings_change": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Audit Logs</h1>
         <p className="text-muted-foreground">Monitor access activity and data exports for your organization</p>
       </div>
 
@@ -112,10 +92,9 @@ export default function AuditLogsPage() {
 
         {/* Access Logs Tab */}
         <TabsContent value="access" className="space-y-4">
-          {/* Filter */}
           <Card>
             <CardContent className="pt-4">
-              <div className="flex items-end gap-4">
+              <div className="flex flex-wrap items-end gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dateFilter">Filter from date</Label>
                   <Input
@@ -125,27 +104,22 @@ export default function AuditLogsPage() {
                     onChange={(e) => setDateFilter(e.target.value)}
                   />
                 </div>
-                <Button onClick={() => { setAccessPage(1); fetchAccessLogs(); }}>
+                <Button onClick={() => { setAccessPage(1); retryAccessLogs(); }}>
                   <Search className="h-4 w-4 mr-2" /> Search
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</div>
-          )}
-
-          {/* Logs Table */}
           <Card>
             <CardHeader>
               <CardTitle>Activity Log</CardTitle>
             </CardHeader>
             <CardContent>
               {accessLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="animate-spin h-6 w-6 text-muted-foreground" />
-                </div>
+                <PageLoading message="Loading access logsâ€¦" />
+              ) : accessError ? (
+                <PageError error={accessError} errorType={accessErrorType} onRetry={retryAccessLogs} />
               ) : accessLogs.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No access logs found</p>
               ) : (
@@ -179,7 +153,6 @@ export default function AuditLogsPage() {
                     </table>
                   </div>
 
-                  {/* Pagination */}
                   {accessMeta && accessMeta.last_page > 1 && (
                     <div className="flex items-center justify-between pt-4">
                       <p className="text-sm text-muted-foreground">
@@ -219,9 +192,7 @@ export default function AuditLogsPage() {
             </CardHeader>
             <CardContent>
               {exportLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="animate-spin h-6 w-6 text-muted-foreground" />
-                </div>
+                <PageLoading message="Loading export historyâ€¦" />
               ) : exportLogs.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No export history</p>
               ) : (
@@ -235,12 +206,12 @@ export default function AuditLogsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {exportLogs.map((log: any, idx: number) => (
+                      {exportLogs.map((log, idx) => (
                         <tr key={idx} className="border-b last:border-0">
-                          <td className="py-3">{log.filename || log.data?.filename || "N/A"}</td>
-                          <td className="py-3">{log.total_records || log.data?.total_records || "—"}</td>
+                          <td className="py-3">{log.filename ?? log.data?.filename ?? "N/A"}</td>
+                          <td className="py-3">{log.total_records ?? log.data?.total_records ?? "â€”"}</td>
                           <td className="py-3 text-muted-foreground">
-                            {log.created_at ? new Date(log.created_at).toLocaleString() : "—"}
+                            {log.created_at ? new Date(log.created_at).toLocaleString() : "â€”"}
                           </td>
                         </tr>
                       ))}
@@ -254,4 +225,21 @@ export default function AuditLogsPage() {
       </Tabs>
     </div>
   );
+}
+
+
+interface AuditLog {
+  id: number;
+  activity_type: string;
+  description: string;
+  user_id: number;
+  created_at: string;
+  activity_data?: Record<string, any>;
+}
+
+interface PaginationMeta {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
 }
