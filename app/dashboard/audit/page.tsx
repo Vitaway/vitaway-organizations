@@ -234,7 +234,7 @@ interface AuditLog {
   description: string;
   user_id: number;
   created_at: string;
-  activity_data?: Record<string, any>;
+  activity_data?: Record<string, unknown>;
 }
 
 interface PaginationMeta {
