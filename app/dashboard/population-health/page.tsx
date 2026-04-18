@@ -43,7 +43,7 @@ async function loadPopulationHealth(): Promise<PopulationHealthApiData> {
 export default function PopulationHealthPage() {
   const { data, loading, error, errorType, retry } = useApiQuery(loadPopulationHealth);
 
-  if (loading) return <PageLoading message="Loading population health dataâ€¦" />;
+  if (loading) return <PageLoading message="Loading population health data" />;
 
   if (error) {
     return (

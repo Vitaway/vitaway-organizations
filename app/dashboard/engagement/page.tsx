@@ -29,7 +29,7 @@ async function loadEngagement(): Promise<EngagementMetrics> {
 export default function EngagementPage() {
   const { data, loading, error, errorType, retry } = useApiQuery(loadEngagement);
 
-  if (loading) return <PageLoading message="Loading engagement metricsâ€¦" />;
+  if (loading) return <PageLoading message="Loading engagement metrics" />;
 
   if (error) {
     return (

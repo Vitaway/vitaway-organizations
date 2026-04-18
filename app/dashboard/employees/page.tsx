@@ -6,6 +6,7 @@ import { PageLoading } from "@/components/ui/page-loading";
 import { PageError } from "@/components/ui/page-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -453,9 +454,8 @@ export default function EmployeesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password (Optional)</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     placeholder="Leave blank to auto-generate"
                     value={addEmployeeForm.password}
                     onChange={(e) => handleFormChange("password", e.target.value)}

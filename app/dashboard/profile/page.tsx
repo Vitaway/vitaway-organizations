@@ -90,7 +90,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) return <PageLoading message="Loading organization profileâ€¦" />;
+  if (loading) return <PageLoading message="Loading organization profile" />;
   if (error) return <PageError error={error} errorType={errorType} onRetry={retryProfile} />;
 
   return (

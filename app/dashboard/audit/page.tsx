@@ -117,7 +117,7 @@ export default function AuditLogsPage() {
             </CardHeader>
             <CardContent>
               {accessLoading ? (
-                <PageLoading message="Loading access logsâ€¦" />
+                <PageLoading message="Loading access logs" />
               ) : accessError ? (
                 <PageError error={accessError} errorType={accessErrorType} onRetry={retryAccessLogs} />
               ) : accessLogs.length === 0 ? (
@@ -192,7 +192,7 @@ export default function AuditLogsPage() {
             </CardHeader>
             <CardContent>
               {exportLoading ? (
-                <PageLoading message="Loading export historyâ€¦" />
+                <PageLoading message="Loading export history" />
               ) : exportLogs.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No export history</p>
               ) : (

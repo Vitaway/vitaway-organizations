@@ -76,7 +76,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground shadow-xl">
+    <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo/Brand */}
       <div className="flex h-16 items-center justify-between px-6 border-sidebar-border">
         <h1 className="text-xl font-bold text-sidebar-foreground">Vitaway</h1>
@@ -112,7 +112,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >

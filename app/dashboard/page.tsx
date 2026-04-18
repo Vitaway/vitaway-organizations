@@ -69,7 +69,7 @@ async function loadMetrics(): Promise<DashboardMetrics> {
 export default function DashboardOverview() {
   const { data: metrics, loading, error, errorType, retry } = useApiQuery(loadMetrics);
 
-  if (loading) return <PageLoading message="Loading dashboardâ€¦" />;
+  if (loading) return <PageLoading message="Loading dashboard" />;
 
   if (error) {
     return (

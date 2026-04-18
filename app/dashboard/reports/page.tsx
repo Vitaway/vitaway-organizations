@@ -187,7 +187,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <PageLoading message="Loading reportsâ€¦" />
+                <PageLoading message="Loading reports" />
               ) : error ? (
                 <PageError error={error} errorType={errorType} onRetry={refetchReports} />
               ) : (
@@ -306,7 +306,7 @@ export default function ReportsPage() {
                   {generating ? (
                     <>
                       <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Generatingâ€¦
+                      Generating
                     </>
                   ) : (
                     <>
@@ -328,7 +328,7 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               {exportLoading ? (
-                <PageLoading message="Loading export historyâ€¦" />
+                <PageLoading message="Loading export history" />
               ) : (
                 <DataTable
                   data={exportHistory}

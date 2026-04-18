@@ -160,7 +160,7 @@ export default function AdminAppointmentsPage() {
 
                 <TabsContent value="all" className="mt-6">
                     {loading ? (
-                        <PageLoading message="Loading appointmentsâ€¦" />
+                        <PageLoading message="Loading appointments" />
                     ) : error ? (
                         <PageError error={error} errorType={errorType} onRetry={retryAppointments} />
                     ) : (
@@ -176,7 +176,7 @@ export default function AdminAppointmentsPage() {
 
                 <TabsContent value="mine" className="mt-6">
                     {loading ? (
-                        <PageLoading message="Loading appointmentsâ€¦" />
+                        <PageLoading message="Loading appointments" />
                     ) : error ? (
                         <PageError error={error} errorType={errorType} onRetry={retryAppointments} />
                     ) : (
