@@ -129,13 +129,12 @@ export default function ReportsPage() {
         const v = String(value);
         return (
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              v === "COMPLETED"
-                ? "bg-green-100 text-green-800"
-                : v === "GENERATING"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-red-100 text-red-800"
-            }`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${v === "COMPLETED"
+              ? "bg-green-100 text-green-800"
+              : v === "GENERATING"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+              }`}
           >
             {v}
           </span>
@@ -176,7 +175,6 @@ export default function ReportsPage() {
         <TabsList>
           <TabsTrigger value="reports">Generated Reports</TabsTrigger>
           <TabsTrigger value="generate">Generate New Report</TabsTrigger>
-          <TabsTrigger value="history">Export History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="reports">
@@ -316,29 +314,6 @@ export default function ReportsPage() {
                   )}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Export History</CardTitle>
-              <CardDescription>Audit trail for all data exports from your organization</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {exportLoading ? (
-                <PageLoading message="Loading export history" />
-              ) : (
-                <DataTable
-                  data={exportHistory}
-                  columns={exportColumns}
-                  currentPage={1}
-                  totalPages={1}
-                  onPageChange={() => {}}
-                  emptyMessage="No export history recorded"
-                />
-              )}
             </CardContent>
           </Card>
         </TabsContent>

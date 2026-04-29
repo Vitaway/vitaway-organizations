@@ -218,25 +218,10 @@ export default function EmployeesPage() {
       render: (value: unknown) => {
         const v = String(value ?? '');
         const statusClass = v === "enrolled"
-          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+          ? "bg-green-400 text-green-800 dark:bg-green-600 dark:text-white"
           : value === "pending"
-            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            ? "bg-yellow-400 text-yellow-800 dark:bg-yellow-600 dark:text-white"
             : "bg-muted text-muted-foreground";
-        return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
-            {v}
-          </span>
-        );
-      },
-    },
-    {
-      key: "engagement_status",
-      label: "Status",
-      render: (value: unknown) => {
-        const v = String(value ?? '');
-        const statusClass = v === "active"
-          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-          : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
             {v}
@@ -257,11 +242,11 @@ export default function EmployeesPage() {
       render: (value: unknown) => {
         const v = String(value ?? '');
         const riskClass = v === "low"
-          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+          ? "bg-green-100 text-black dark:bg-green-400 dark:text-green-800"
             : v === "medium"
-              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+              ? "bg-yellow-100 text-black dark:bg-yellow-400 dark:text-yellow-800"
               : v === "high"
-                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                ? "bg-red-100 text-black dark:bg-red-400 dark:text-red-800"
                 : "bg-muted text-muted-foreground";
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${riskClass}`}>
@@ -290,10 +275,6 @@ export default function EmployeesPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline">
-            <Upload className="h-4 w-4 mr-2" />
-            Bulk Upload
-          </Button>
           <Button>
             <UserPlus className="h-4 w-4 mr-2" />
             Add Employee
@@ -305,7 +286,6 @@ export default function EmployeesPage() {
         <TabsList>
           <TabsTrigger value="list">Employee List</TabsTrigger>
           <TabsTrigger value="add">Add Employee</TabsTrigger>
-          <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
           <TabsTrigger value="notify">Send Notification</TabsTrigger>
         </TabsList>
 
@@ -504,74 +484,6 @@ export default function EmployeesPage() {
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="bulk">
-          <Card>
-            <CardHeader>
-              <CardTitle>Bulk Upload Employees</CardTitle>
-              <CardDescription>
-                Upload a CSV file to onboard multiple employees at once
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {bulkError && (
-                <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{bulkError}</div>
-              )}
-              {bulkSuccess && (
-                <div className="p-3 rounded-md bg-green-50 text-green-800 text-sm">{bulkSuccess}</div>
-              )}
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                {bulkFile ? (
-                  <p className="text-sm font-medium mb-2">Selected: {bulkFile.name}</p>
-                ) : (
-                  <p className="text-sm font-medium mb-2">
-                    Drag and drop your CSV file here, or click to browse
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mb-4">
-                  Maximum file size: 5MB
-                </p>
-                <Input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  id="csvUpload"
-                  onChange={(e) => {
-                    setBulkFile(e.target.files?.[0] || null);
-                    setBulkError(null);
-                    setBulkSuccess(null);
-                  }}
-                />
-                <div className="flex gap-2 justify-center">
-                  <Button variant="outline" asChild>
-                    <label htmlFor="csvUpload" className="cursor-pointer">
-                      Select File
-                    </label>
-                  </Button>
-                  {bulkFile && (
-                    <Button onClick={handleBulkUpload} disabled={bulkUploading}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      {bulkUploading ? "Uploading..." : "Upload"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">CSV Format Requirements:</p>
-                <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Required columns: firstname, lastname, email</li>
-                  <li>Optional columns: phone</li>
-                  <li>First row should contain column headers</li>
-                  <li>Maximum file size: 5MB</li>
-                </ul>
-                <Button variant="link" size="sm" className="px-0">
-                  Download Sample CSV Template
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
