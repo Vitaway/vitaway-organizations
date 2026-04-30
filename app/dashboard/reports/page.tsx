@@ -30,9 +30,11 @@ export default function ReportsPage() {
     errorType,
     retry: refetchReports,
   } = useApiQuery(async () => {
-    const res = (await getReports({ page: currentPage })) as ApiResponse<{ data: Report[]; last_page: number }>;
+    const res = (await getReports({ page: currentPage })) as ApiResponse<{ data: Report[] }> & { pagination?: { last_page: number } };
     if (!res?.success || !res.data) throw new Error(res?.message || "Failed to load reports.");
-    return { reports: res.data.data || [], totalPages: res.data.last_page || 1 };
+    const reports = Array.isArray(res.data) ? res.data : res.data.data || [];
+    const totalPages = res.pagination?.last_page || 1;
+    return { reports, totalPages };
   }, [currentPage]);
 
   const reports = reportData?.reports ?? [];

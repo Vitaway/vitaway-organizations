@@ -137,16 +137,24 @@ export interface EngagementMetrics {
 }
 
 // Report
+export type ReportType = 'population_health' | 'engagement' | 'roi' | 'risk_summary' | 'program_completion';
+export type ReportFormat = 'pdf' | 'excel' | 'csv';
+export type ReportStatus = 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED';
+
 export interface Report {
-  [key: string]: unknown;
   id: string;
-  organizationId: string;
   reportType: string;
-  generatedBy: string;
-  generatedAt: Date;
-  format: 'PDF' | 'CSV';
-  status: 'GENERATING' | 'COMPLETED' | 'FAILED';
+  reportTypeValue: ReportType;
+  format: string; // 'PDF' | 'EXCEL' | 'CSV'
+  status: ReportStatus;
+  generatedAt?: string;
   downloadUrl?: string;
+  fileSize?: number;
+  errorMessage?: string;
+  dateRange?: {
+    start?: string;
+    end?: string;
+  };
 }
 
 // Export History
@@ -311,6 +319,25 @@ export interface ProgramModule {
   is_required: boolean;
   estimated_minutes: number;
   quiz?: ProgramQuiz | null;
+  lessons?: ProgramLesson[];
+  quizzes?: ProgramQuiz[];
+}
+
+export interface ProgramLesson {
+  id: number;
+  module_id: number;
+  title: string;
+  description?: string | null;
+  content_type: ProgramContentType;
+  content?: string | null;
+  video_url?: string | null;
+  file_url?: string | null;
+  file_type?: string | null;
+  position: number;
+  estimated_duration_minutes?: number;
+  is_required: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProgramQuiz {

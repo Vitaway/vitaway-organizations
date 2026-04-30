@@ -282,6 +282,14 @@ export async function getProgramModule(programId: number, moduleId: number) {
   return fetchApi(`/programs/${programId}/modules/${moduleId}`);
 }
 
+export async function getProgramLessons(programId: number, moduleId: number) {
+  return fetchApi(`/programs/${programId}/modules/${moduleId}/lessons?per_page=100`);
+}
+
+export async function getProgramLesson(programId: number, moduleId: number, lessonId: number) {
+  return fetchApi(`/programs/${programId}/modules/${moduleId}/lessons/${lessonId}`);
+}
+
 export async function getProgramQuizzes(programId: number) {
   return fetchApi(`/programs/${programId}/quizzes?per_page=100`);
 }

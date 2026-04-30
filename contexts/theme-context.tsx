@@ -13,19 +13,26 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>(() => {
-        if (typeof window === "undefined") return "light";
-        
+    // Initialize with default value to avoid hydration mismatch
+    const [theme, setThemeState] = useState<Theme>("light");
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    // Set the actual theme after hydration is complete
+    useEffect(() => {
         const savedTheme = localStorage.getItem("theme") as Theme | null;
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
             ? "dark"
             : "light";
 
-        return savedTheme || systemTheme;
-    });
+        const initialTheme = savedTheme || systemTheme;
+        setThemeState(initialTheme);
+        setIsHydrated(true);
+    }, []);
 
     // Apply theme to document whenever theme changes
     useEffect(() => {
+        if (!isHydrated) return;
+        
         const root = document.documentElement;
         
         if (theme === "dark") {
@@ -33,11 +40,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         } else {
             root.classList.remove("dark");
         }
-    }, [theme]);
+    }, [theme, isHydrated]);
 
     const setTheme = (newTheme: Theme) => {
         setThemeState(newTheme);
-        localStorage.setItem("theme", newTheme);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("theme", newTheme);
+        }
     };
 
     const toggleTheme = () => {

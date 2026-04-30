@@ -7,10 +7,15 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    ArrowLeft, Loader2, Clock, FileText, Video, FolderOpen,
-    ChevronRight, HelpCircle, CheckCircle2
+    ArrowLeft, Loader2, Clock, ChevronRight, HelpCircle, CheckCircle2,
+    FileText,
+    Video,
+    FolderOpen,
+    BookOpen
 } from "lucide-react";
 import { getProgramModule } from "@/lib/api-client";
+import { ModuleContent } from "@/components/programs/ModuleContent";
+import { LessonsList } from "@/components/programs/LessonsList";
 
 interface Answer {
     id: number;
@@ -53,7 +58,23 @@ interface Module {
     position: number;
     estimated_duration_minutes?: number;
     is_required: boolean;
+    lessons?: Lesson[];
     quizzes: Quiz[];
+}
+
+interface Lesson {
+    id: number;
+    module_id: number;
+    title: string;
+    description?: string | null;
+    content_type: string;
+    content?: string | null;
+    video_url?: string | null;
+    file_url?: string | null;
+    file_type?: string | null;
+    position: number;
+    estimated_duration_minutes?: number;
+    is_required: boolean;
 }
 
 export default function ModuleDetailPage() {
@@ -70,6 +91,7 @@ export default function ModuleDetailPage() {
             try {
                 setLoading(true);
                 const response = (await getProgramModule(programId, moduleId)) as any;
+
                 if (response?.success && response.data) {
                     setModule(response.data);
                 } else {
@@ -158,56 +180,30 @@ export default function ModuleDetailPage() {
                 </div>
             </div>
 
+
             {/* Module Content */}
-            {(module.description || module.content) && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Content</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {module.description && (
-                            <p className="text-sm text-muted-foreground leading-relaxed">{module.description}</p>
-                        )}
-                        {module.content && (
-                            <div
-                                className="prose prose-sm dark:prose-invert max-w-none text-foreground"
-                                dangerouslySetInnerHTML={{ __html: module.content }}
-                            />
-                        )}
-                        {module.video_url && (
-                            <div className="rounded-lg border p-4 bg-muted/50">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Video className="h-4 w-4 text-blue-500" />
-                                    <span className="text-sm font-medium">Video Content</span>
-                                </div>
-                                <a
-                                    href={module.video_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-primary hover:underline break-all"
-                                >
-                                    {module.video_url}
-                                </a>
-                            </div>
-                        )}
-                        {module.file_url && (
-                            <div className="rounded-lg border p-4 bg-muted/50">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <FileText className="h-4 w-4 text-orange-500" />
-                                    <span className="text-sm font-medium">Attached File</span>
-                                </div>
-                                <a
-                                    href={module.file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-primary hover:underline break-all"
-                                >
-                                    {module.file_url}
-                                </a>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+            <ModuleContent
+                contentType={module.content_type}
+                content={module.content}
+                videoUrl={module.video_url}
+                fileUrl={module.file_url}
+                title={module.title}
+                description={module.description}
+            />
+
+            {/* Lessons */}
+            {module.lessons && module.lessons.length > 0 && (
+                <div>
+                    <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        Lessons ({module.lessons.length})
+                    </h2>
+                    <LessonsList
+                        programId={programId}
+                        moduleId={moduleId}
+                        lessons={module.lessons}
+                    />
+                </div>
             )}
 
             {/* Quizzes */}
@@ -274,11 +270,10 @@ export default function ModuleDetailPage() {
                                                                 {question.answers.map((answer) => (
                                                                     <div
                                                                         key={answer.id}
-                                                                        className={`flex items-start gap-2 rounded-md px-3 py-2 text-sm ${
-                                                                            answer.is_correct
+                                                                        className={`flex items-start gap-2 rounded-md px-3 py-2 text-sm ${answer.is_correct
                                                                                 ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
                                                                                 : "bg-muted/50 border border-transparent"
-                                                                        }`}
+                                                                            }`}
                                                                     >
                                                                         {answer.is_correct ? (
                                                                             <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />

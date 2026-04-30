@@ -38,13 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Check if user is already logged in (run after hydration)
     const token = getToken();
     if (token) {
-      // Optionally validate token or fetch user data
       const storedUser = localStorage.getItem("user");
       const storedOrg = localStorage.getItem("organization");
       const storedRole = localStorage.getItem("role");
@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setIsLoading(false);
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -125,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role,
     permissions,
     isAuthenticated: !!user,
-    isLoading,
+    isLoading: isLoading || !isHydrated,
     login,
     logout,
   };

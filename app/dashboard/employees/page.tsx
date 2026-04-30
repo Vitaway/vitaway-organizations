@@ -286,7 +286,6 @@ export default function EmployeesPage() {
         <TabsList>
           <TabsTrigger value="list">Employee List</TabsTrigger>
           <TabsTrigger value="add">Add Employee</TabsTrigger>
-          <TabsTrigger value="notify">Send Notification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
@@ -481,74 +480,6 @@ export default function EmployeesPage() {
                         Add Employee
                       </>
                     )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notify">
-          <Card>
-            <CardHeader>
-              <CardTitle>Send Notification</CardTitle>
-              <CardDescription>
-                Send reminders or notifications to employees
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {notifyError && (
-                <div className="mb-4 p-3 rounded-md bg-red-50 text-red-800 text-sm">{notifyError}</div>
-              )}
-              {notifySuccess && (
-                <div className="mb-4 p-3 rounded-md bg-green-50 text-green-800 text-sm">{notifySuccess}</div>
-              )}
-              <form className="space-y-4" onSubmit={handleSendNotification}>
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject *</Label>
-                  <Input
-                    id="subject"
-                    placeholder="Health program reminder"
-                    value={notifySubject}
-                    onChange={(e) => setNotifySubject(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message *</Label>
-                  <textarea
-                    id="message"
-                    className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Enter your message here..."
-                    value={notifyMessage}
-                    onChange={(e) => setNotifyMessage(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Recipients</Label>
-                  <div className="space-y-2">
-                    <label className="flex items-center space-x-2">
-                      <input type="radio" name="recipients" value="all" checked={notifyRecipients === "all"} onChange={(e) => setNotifyRecipients(e.target.value)} />
-                      <span className="text-sm">All Employees</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="radio" name="recipients" value="segment" checked={notifyRecipients === "segment"} onChange={(e) => setNotifyRecipients(e.target.value)} />
-                      <span className="text-sm">Segmented Group</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="radio" name="recipients" value="specific" checked={notifyRecipients === "specific"} onChange={(e) => setNotifyRecipients(e.target.value)} />
-                      <span className="text-sm">Specific Employees</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setNotifySubject(""); setNotifyMessage(""); setNotifyRecipients("all"); }}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={notifySending}>
-                    <Send className="h-4 w-4 mr-2" />
-                    {notifySending ? "Sending..." : "Send Notification"}
                   </Button>
                 </div>
               </form>
