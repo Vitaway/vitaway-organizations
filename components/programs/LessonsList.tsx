@@ -159,7 +159,7 @@ export function LessonsList({ programId, moduleId, lessons, isLoading = false }:
                                         <FileViewer
                                             fileUrl={lesson.file_url}
                                             fileName={lesson.title}
-                                            fileType={lesson.file_type}
+                                            fileType={lesson.file_type ?? ""}
                                             description="Lesson File"
                                         />
                                     </div>

@@ -153,7 +153,7 @@ export default function LessonDetailPage() {
                 <div>
                     <h2 className="text-lg font-semibold text-foreground mb-4">Video Content</h2>
                     <VideoPlayer
-                        url={lesson.video_url}
+                        videoUrl={lesson.video_url}
                         title={lesson.title}
                     />
                 </div>

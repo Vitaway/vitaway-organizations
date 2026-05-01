@@ -79,7 +79,7 @@ export function LessonPreview({ lesson }: LessonPreviewProps) {
                         <VideoPlayer
                             videoUrl={lesson.video_url}
                             title={lesson.title}
-                            description={lesson.description}
+                            description={lesson.description ?? ""}
                         />
                     )}
 
@@ -88,8 +88,8 @@ export function LessonPreview({ lesson }: LessonPreviewProps) {
                         <FileViewer
                             fileUrl={lesson.file_url}
                             fileName={lesson.title}
-                            fileType={lesson.file_type}
-                            description={lesson.description}
+                            fileType={lesson.file_type ?? ""}
+                            description={lesson.description ?? ""}
                         />
                     )}
 
