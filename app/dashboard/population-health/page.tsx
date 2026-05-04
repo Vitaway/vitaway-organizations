@@ -61,27 +61,27 @@ export default function PopulationHealthPage() {
 
   const bmiData = data.bmi_distribution
     ? [
-        { name: "Underweight", value: data.bmi_distribution.underweight?.count ?? 0 },
-        { name: "Normal", value: data.bmi_distribution.normal?.count ?? 0 },
-        { name: "Overweight", value: data.bmi_distribution.overweight?.count ?? 0 },
-        { name: "Obese", value: data.bmi_distribution.obese?.count ?? 0 },
-      ]
+      { name: "Underweight", value: data.bmi_distribution.underweight?.count ?? 0 },
+      { name: "Normal", value: data.bmi_distribution.normal?.count ?? 0 },
+      { name: "Overweight", value: data.bmi_distribution.overweight?.count ?? 0 },
+      { name: "Obese", value: data.bmi_distribution.obese?.count ?? 0 },
+    ]
     : [];
 
   const bloodPressureData = data.blood_pressure_risk
     ? [
-        { name: "Normal", value: data.blood_pressure_risk.normal ?? 0 },
-        { name: "Elevated", value: data.blood_pressure_risk.elevated ?? 0 },
-        { name: "High", value: data.blood_pressure_risk.high ?? 0 },
-      ]
+      { name: "Normal", value: data.blood_pressure_risk.normal ?? 0 },
+      { name: "Elevated", value: data.blood_pressure_risk.elevated ?? 0 },
+      { name: "High", value: data.blood_pressure_risk.high ?? 0 },
+    ]
     : [];
 
   const diabetesRiskData = data.diabetes_risk
     ? [
-        { name: "Low", value: data.diabetes_risk.low ?? 0 },
-        { name: "Moderate", value: data.diabetes_risk.moderate ?? 0 },
-        { name: "High", value: data.diabetes_risk.high ?? 0 },
-      ]
+      { name: "Low", value: data.diabetes_risk.low ?? 0 },
+      { name: "Moderate", value: data.diabetes_risk.moderate ?? 0 },
+      { name: "High", value: data.diabetes_risk.high ?? 0 },
+    ]
     : [];
 
   return (
@@ -97,6 +97,7 @@ export default function PopulationHealthPage() {
         title="BMI Distribution"
         data={bmiData}
         type="bar"
+        colors={["#3b82f6", "#10b981", "#f59e0b", "#ef4444"]}
         description={`Body Mass Index distribution across ${data.total_enrolled ?? 0} enrolled employees`}
       />
 
