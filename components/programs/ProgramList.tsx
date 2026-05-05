@@ -128,10 +128,12 @@ export default function ProgramList() {
                     {program.status}
                   </Badge>
                 </div>
-                <p
-                  className="line-clamp-2 text-sm text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: program.description }}
-                />
+                {program.description && (
+                  <p
+                    className="line-clamp-2 text-sm text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: program.description }}
+                  />
+                )}
               </div>
 
               {/* Meta */}
