@@ -26,24 +26,24 @@ export default function ProgramList() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-400';
       case 'draft':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-400';
       case 'archived':
         return 'bg-muted text-muted-foreground';
       default:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-400';
     }
   };
 
   const getDifficultyColor = (level: string) => {
     switch (level) {
       case 'beginner':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-400';
       case 'intermediate':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-400';
       case 'advanced':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -128,9 +128,10 @@ export default function ProgramList() {
                     {program.status}
                   </Badge>
                 </div>
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {program.description}
-                </p>
+                <p
+                  className="line-clamp-2 text-sm text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: program.description }}
+                />
               </div>
 
               {/* Meta */}

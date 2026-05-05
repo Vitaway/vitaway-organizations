@@ -274,12 +274,6 @@ export default function EmployeesPage() {
             Onboard and manage employees within your organization
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Employee
-          </Button>
-        </div>
       </div>
 
       <Tabs defaultValue="list" className="space-y-4">

@@ -97,24 +97,24 @@ export default function ProgramDetailPage() {
     const getStatusColor = (status: string) => {
         switch (status) {
             case "active":
-                return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+                return "bg-green-400 text-green-800 dark:bg-green-900 dark:text-green-400";
             case "draft":
-                return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+                return "bg-yellow-400 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-400";
             case "archived":
                 return "bg-muted text-muted-foreground";
             default:
-                return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+                return "bg-blue-400 text-blue-800 dark:bg-blue-900 dark:text-blue-400";
         }
     };
 
     const getDifficultyColor = (level: string) => {
         switch (level) {
             case "beginner":
-                return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400";
+                return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-400";
             case "intermediate":
-                return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+                return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-400";
             case "advanced":
-                return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+                return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-400";
             default:
                 return "bg-muted text-muted-foreground";
         }
@@ -175,7 +175,7 @@ export default function ProgramDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {program.description && (
-                        <p className="text-sm text-muted-foreground leading-relaxed">{program.description}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: program.description }} />
                     )}
                     {program.learning_objectives && (
                         <div>
@@ -183,7 +183,7 @@ export default function ProgramDetailPage() {
                                 <Target className="h-4 w-4 text-primary" />
                                 <p className="text-sm font-medium text-foreground">Learning Objectives</p>
                             </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed pl-6">{program.learning_objectives}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed pl-6" dangerouslySetInnerHTML={{ __html: program.learning_objectives }} />
                         </div>
                     )}
                 </CardContent>
