@@ -144,8 +144,175 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
+.quill-content {
+  color: inherit;
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+.quill-content > :first-child {
+  margin-top: 0;
+}
+
+.quill-content > :last-child {
+  margin-bottom: 0;
+}
+
+.quill-content h1,
+.quill-content h2,
+.quill-content h3,
+.quill-content h4,
+.quill-content h5,
+.quill-content h6 {
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.25em 0 0.5em;
+}
+
+.quill-content h1 {
+  font-size: 2rem;
+}
+
+.quill-content h2 {
+  font-size: 1.5rem;
+}
+
+.quill-content h3 {
+  font-size: 1.25rem;
+}
+
+.quill-content h4 {
+  font-size: 1.125rem;
+}
+
+.quill-content p,
+.quill-content ul,
+.quill-content ol,
+.quill-content blockquote,
+.quill-content pre,
+.quill-content table {
+  margin: 0.85em 0;
+}
+
+.quill-content ul,
+.quill-content ol {
+  padding-left: 1.5rem;
+}
+
+.quill-content ul {
+  list-style: disc;
+}
+
+.quill-content ol {
+  list-style: decimal;
+}
+
+.quill-content li + li {
+  margin-top: 0.35rem;
+}
+
+.quill-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.quill-content blockquote {
+  border-left: 4px solid hsl(var(--primary));
+  background: hsl(var(--accent) / 0.55);
+  border-radius: 0 0.75rem 0.75rem 0;
+  color: hsl(var(--muted-foreground));
+  padding: 0.75rem 1rem;
+}
+
+.quill-content img {
+  border-radius: 0.75rem;
+  height: auto;
+  margin: 1rem 0;
+  max-width: 100%;
+}
+
+.quill-content table {
+  border-collapse: collapse;
+  overflow: hidden;
+  width: 100%;
+}
+
+.quill-content th,
+.quill-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.quill-content th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+.quill-content pre {
+  background: hsl(var(--sidebar));
+  border-radius: 0.75rem;
+  color: hsl(var(--sidebar-foreground));
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.quill-content code {
+  background: hsl(var(--muted));
+  border-radius: 0.35rem;
+  color: hsl(var(--foreground));
+  font-size: 0.9em;
+  padding: 0.15rem 0.35rem;
+}
+
+.quill-content .ql-align-center {
+  text-align: center;
+}
+
+.quill-content .ql-align-right {
+  text-align: right;
+}
+
+.quill-content .ql-align-justify {
+  text-align: justify;
+}
+
+.quill-content .ql-indent-1 {
+  padding-left: 1.5rem;
+}
+
+.quill-content .ql-indent-2 {
+  padding-left: 3rem;
+}
+
+.quill-content .ql-indent-3 {
+  padding-left: 4.5rem;
+}
+
+.quill-content .ql-indent-4 {
+  padding-left: 6rem;
+}
+
+.quill-content .ql-indent-5 {
+  padding-left: 7.5rem;
+}
+
+.quill-content .ql-indent-6 {
+  padding-left: 9rem;
+}
+
+.quill-content .ql-indent-7 {
+  padding-left: 10.5rem;
+}
+
+.quill-content .ql-indent-8 {
+  padding-left: 12rem;
+}
+
 /* Smooth transitions for theme changes */
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
-

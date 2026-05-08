@@ -7,11 +7,13 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    ArrowLeft, Loader2, Clock, ChevronRight, HelpCircle, CheckCircle2,
+    ArrowLeft, Loader2, Clock, ChevronRight, CheckCircle2,
     FileText,
     Video,
     FolderOpen,
-    BookOpen
+    BookOpen,
+    Layers,
+    ListChecks
 } from "lucide-react";
 import { getProgramModule } from "@/lib/api-client";
 import { ModuleContent } from "@/components/programs/ModuleContent";
@@ -55,9 +57,11 @@ interface Module {
     content?: string;
     video_url?: string;
     file_url?: string;
+    file_type?: string;
     position: number;
     estimated_duration_minutes?: number;
     is_required: boolean;
+    requires_quiz_pass?: boolean;
     lessons?: Lesson[];
     quizzes: Quiz[];
 }
@@ -143,6 +147,19 @@ export default function ModuleDetailPage() {
         }
     };
 
+    const moduleDetails = [
+        { label: "Content type", value: module.content_type },
+        { label: "Requirement", value: module.is_required ? "Required" : "Optional" },
+        { label: "Position", value: String(module.position) },
+        ...(module.estimated_duration_minutes
+            ? [{ label: "Estimated time", value: `${module.estimated_duration_minutes} minutes` }]
+            : []),
+        ...(module.file_type ? [{ label: "File type", value: module.file_type.toUpperCase() }] : []),
+        { label: "Quiz pass", value: module.requires_quiz_pass ? "Required to complete" : "Not required" },
+        { label: "Lessons", value: String(module.lessons?.length ?? 0) },
+        { label: "Quizzes", value: String(module.quizzes?.length ?? 0) },
+    ];
+
     return (
         <div className="space-y-6">
             {/* Breadcrumb */}
@@ -166,9 +183,17 @@ export default function ModuleDetailPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <Badge variant="outline" className="capitalize">{module.content_type}</Badge>
-                    {module.is_required && (
-                        <Badge variant="outline" className="text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
-                            Required
+                    <Badge
+                        variant="outline"
+                        className={module.is_required
+                            ? "text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700"
+                            : "text-slate-600 border-slate-300 dark:text-slate-300 dark:border-slate-700"}
+                    >
+                        {module.is_required ? "Required" : "Optional"}
+                    </Badge>
+                    {module.requires_quiz_pass && (
+                        <Badge variant="outline" className="text-emerald-600 border-emerald-300 dark:text-emerald-400 dark:border-emerald-700">
+                            Quiz pass required
                         </Badge>
                     )}
                     {module.estimated_duration_minutes && (
@@ -180,6 +205,26 @@ export default function ModuleDetailPage() {
                 </div>
             </div>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Layers className="h-5 w-5" />
+                        Module Details
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {moduleDetails.map((detail) => (
+                        <div key={detail.label} className="rounded-lg border bg-muted/30 p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                {detail.label}
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-foreground capitalize">
+                                {detail.value}
+                            </p>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
 
             {/* Module Content */}
             <ModuleContent
@@ -187,6 +232,7 @@ export default function ModuleDetailPage() {
                 content={module.content}
                 videoUrl={module.video_url}
                 fileUrl={module.file_url}
+                fileType={module.file_type}
                 title={module.title}
                 description={module.description}
             />
@@ -210,7 +256,7 @@ export default function ModuleDetailPage() {
             {module.quizzes && module.quizzes.length > 0 && (
                 <div>
                     <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                        <HelpCircle className="h-5 w-5" />
+                        <ListChecks className="h-5 w-5" />
                         Quizzes ({module.quizzes.length})
                     </h2>
 

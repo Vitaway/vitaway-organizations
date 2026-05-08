@@ -5,6 +5,7 @@ import { Download, File, FileText, AlertCircle, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 
 interface FileViewerProps {
   fileUrl: string;
@@ -135,7 +136,7 @@ export function FileViewer({
           </div>
         </div>
         {description && (
-          <p className="text-sm text-muted-foreground mt-3">{description}</p>
+          <RichTextContent html={description} className="mt-3 text-sm text-muted-foreground" />
         )}
       </CardHeader>
 
@@ -158,7 +159,7 @@ export function FileViewer({
                     PDF preview not available in browser
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Click "Preview" or "Download" to view the PDF
+                    Click Preview or Download to view the PDF
                   </p>
                 </div>
               </div>

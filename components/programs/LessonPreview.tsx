@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, FileText, Video, Download } from 'lucide-react';
+import { Eye, FileText, Video } from 'lucide-react';
 import { VideoPlayer } from './VideoPlayer';
 import { FileViewer } from './FileViewer';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 
 interface LessonPreviewProps {
     lesson: {
@@ -71,7 +72,7 @@ export function LessonPreview({ lesson }: LessonPreviewProps) {
 
                 <div className="space-y-4">
                     {lesson.description && (
-                        <p className="text-sm text-muted-foreground">{lesson.description}</p>
+                        <RichTextContent html={lesson.description} className="text-sm text-muted-foreground" />
                     )}
 
                     {/* Video Preview */}
@@ -96,11 +97,7 @@ export function LessonPreview({ lesson }: LessonPreviewProps) {
                     {/* Text Content */}
                     {lesson.content_type === 'text' && lesson.content && (
                         <div className="rounded-lg border bg-white dark:bg-slate-900 p-6">
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                                    {lesson.content}
-                                </div>
-                            </div>
+                            <RichTextContent html={lesson.content} className="text-sm text-muted-foreground" />
                         </div>
                     )}
 

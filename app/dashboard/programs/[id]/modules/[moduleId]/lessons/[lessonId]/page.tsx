@@ -5,14 +5,14 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 import {
     ArrowLeft, Loader2, Clock, ChevronRight, FileText,
     Video, Download, AlertCircle
 } from "lucide-react";
 import { getProgramLesson } from "@/lib/api-client";
 import { VideoPlayer } from "@/components/programs/VideoPlayer";
-import { FileViewer } from "@/components/programs/FileViewer";
 
 interface Lesson {
     id: number;
@@ -143,7 +143,7 @@ export default function LessonDetailPage() {
             {lesson.description && (
                 <Card>
                     <CardContent className="pt-6">
-                        <p className="text-sm text-muted-foreground leading-relaxed">{lesson.description}</p>
+                        <RichTextContent html={lesson.description} className="text-sm text-muted-foreground leading-relaxed" />
                     </CardContent>
                 </Card>
             )}
@@ -189,10 +189,8 @@ export default function LessonDetailPage() {
                 <div>
                     <h2 className="text-lg font-semibold text-foreground mb-4">Lesson Content</h2>
                     <Card>
-                        <CardContent className="pt-6 prose prose-sm dark:prose-invert max-w-none">
-                            <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                {lesson.content}
-                            </div>
+                        <CardContent className="pt-6">
+                            <RichTextContent html={lesson.content} className="text-sm text-muted-foreground leading-relaxed" />
                         </CardContent>
                     </Card>
                 </div>

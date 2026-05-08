@@ -6,11 +6,13 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RichTextContent } from "@/components/ui/rich-text-content";
 import {
     ArrowLeft, Loader2, BookOpen, Clock, Layers, Target,
     ChevronRight, FileText, Video, FolderOpen
 } from "lucide-react";
 import { getProgram, getProgramModules } from "@/lib/api-client";
+import { htmlToPlainText } from "@/lib/utils";
 
 interface Module {
     id: number;
@@ -34,6 +36,14 @@ interface Program {
     learning_objectives: string;
     thumbnail_url?: string;
     created_at: string;
+    updated_at?: string;
+    stats?: {
+        total_enrolled?: number;
+        completed?: number;
+        in_progress?: number;
+        not_started?: number;
+        completion_rate?: number;
+    };
 }
 
 export default function ProgramDetailPage() {
@@ -120,6 +130,15 @@ export default function ProgramDetailPage() {
         }
     };
 
+    const formatDate = (value?: string) =>
+        value
+            ? new Date(value).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            })
+            : "N/A";
+
     const getContentTypeIcon = (type: string) => {
         switch (type) {
             case "video":
@@ -132,6 +151,26 @@ export default function ProgramDetailPage() {
                 return <FileText className="h-5 w-5 text-muted-foreground" />;
         }
     };
+
+    const programDetails = [
+        { label: "Status", value: program.status },
+        { label: "Difficulty", value: program.difficulty_level || "Not set" },
+        {
+            label: "Estimated duration",
+            value: program.estimated_duration_hours ? `${program.estimated_duration_hours} hours` : "Not set",
+        },
+        { label: "Modules", value: String(program.total_modules || modules.length) },
+        { label: "Quizzes", value: String(modules.reduce((count, module) => count + (module.quizzes?.length || 0), 0)) },
+        { label: "Created", value: formatDate(program.created_at) },
+        { label: "Updated", value: formatDate(program.updated_at) },
+    ];
+
+    const completionStats = [
+        { label: "Total Enrolled", value: String(program.stats?.total_enrolled ?? 0) },
+        { label: "Completed", value: String(program.stats?.completed ?? 0) },
+        { label: "In Progress", value: String(program.stats?.in_progress ?? 0) },
+        { label: "Completion Rate", value: `${program.stats?.completion_rate ?? 0}%` },
+    ];
 
     return (
         <div className="space-y-6">
@@ -165,6 +204,34 @@ export default function ProgramDetailPage() {
                 </div>
             </div>
 
+            <Card>
+                <CardContent className="pt-6">
+                    <div className="flex flex-col gap-6 lg:flex-row">
+                        {program.thumbnail_url && (
+                            <img
+                                src={program.thumbnail_url}
+                                alt={program.title}
+                                className="h-48 w-full rounded-xl object-cover lg:h-40 lg:w-64"
+                            />
+                        )}
+                        <div className="flex-1 space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                {programDetails.map((detail) => (
+                                    <div key={detail.label} className="rounded-lg border bg-muted/30 p-4">
+                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                            {detail.label}
+                                        </p>
+                                        <p className="mt-1 text-sm font-medium text-foreground capitalize">
+                                            {detail.value}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Program Info */}
             <Card>
                 <CardHeader>
@@ -175,7 +242,7 @@ export default function ProgramDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {program.description && (
-                        <p className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: program.description }} />
+                        <RichTextContent html={program.description} className="text-sm text-muted-foreground leading-relaxed" />
                     )}
                     {program.learning_objectives && (
                         <div>
@@ -183,9 +250,30 @@ export default function ProgramDetailPage() {
                                 <Target className="h-4 w-4 text-primary" />
                                 <p className="text-sm font-medium text-foreground">Learning Objectives</p>
                             </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed pl-6" dangerouslySetInnerHTML={{ __html: program.learning_objectives }} />
+                            <RichTextContent html={program.learning_objectives} className="pl-6 text-sm text-muted-foreground leading-relaxed" />
                         </div>
                     )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5" />
+                        Completion Snapshot
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {completionStats.map((stat) => (
+                        <div key={stat.label} className="rounded-lg border bg-muted/30 p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                {stat.label}
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-foreground">
+                                {stat.value}
+                            </p>
+                        </div>
+                    ))}
                 </CardContent>
             </Card>
 
@@ -230,7 +318,7 @@ export default function ProgramDetailPage() {
                                             </h3>
                                             {module.description && (
                                                 <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                                                    {module.description}
+                                                    {htmlToPlainText(module.description)}
                                                 </p>
                                             )}
                                             <div className="flex items-center gap-3 mt-1">

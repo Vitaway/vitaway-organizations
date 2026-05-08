@@ -3,15 +3,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
-    FileText, Video, FolderOpen, Clock, ChevronRight, 
-    CheckCircle2, AlertCircle, BookOpen, Eye, Download
+    FileText, Video, Clock, ChevronRight, BookOpen
 } from 'lucide-react';
 import { VideoPlayer } from './VideoPlayer';
 import { FileViewer } from './FileViewer';
 import { LessonPreview } from './LessonPreview';
+import { htmlToPlainText } from '@/lib/utils';
 
 interface Lesson {
     id: number;
@@ -106,7 +105,7 @@ export function LessonsList({ programId, moduleId, lessons, isLoading = false }:
                             </div>
                             {lesson.description && (
                                 <p className="text-sm text-muted-foreground line-clamp-1">
-                                    {lesson.description}
+                                    {htmlToPlainText(lesson.description)}
                                 </p>
                             )}
                             <div className="flex items-center gap-3 mt-2">
@@ -135,7 +134,7 @@ export function LessonsList({ programId, moduleId, lessons, isLoading = false }:
                             {/* Description */}
                             {lesson.description && (
                                 <div>
-                                    <p className="text-sm text-muted-foreground">{lesson.description}</p>
+                                    <p className="text-sm text-muted-foreground">{htmlToPlainText(lesson.description)}</p>
                                 </div>
                             )}
 
