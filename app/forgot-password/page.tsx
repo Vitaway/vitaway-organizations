@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { forgotPassword } from "@/lib/api-client";
+import { getApiErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +26,17 @@ export default function ForgotPasswordPage() {
         try {
             const response = await forgotPassword(email);
             if (response.success) {
-                setSuccess(response.message || "Password reset link has been sent to your email.");
+                const debugCode = response.data?.debugCode;
+                setSuccess(
+                    debugCode
+                        ? `Development code ${debugCode}. Use it on the next screen. The same code is emailed, and sent on WhatsApp or SMS when the account has a phone number.`
+                        : "If this address belongs to an organisation administrator, a 6-digit code is on its way by email. Accounts with a phone number also receive it on WhatsApp, with SMS as a fallback."
+                );
             } else {
-                setError(response.message || "Failed to send reset link.");
+                setError(response.message || "Failed to send a reset code.");
             }
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
-            setError(message);
+            setError(getApiErrorMessage(err, "Something went wrong. Please try again."));
         } finally {
             setIsLoading(false);
         }
@@ -48,7 +53,7 @@ export default function ForgotPasswordPage() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl text-center">Forgot Password</CardTitle>
                     <CardDescription className="text-center">
-                        we&apos;ll send you a link to reset your password.
+                        We&apos;ll send a 6-digit code to reset your password. It expires in 10 minutes.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -61,8 +66,8 @@ export default function ForgotPasswordPage() {
                         )}
 
                         {success && (
-                            <div className="flex items-center gap-2 p-3 text-sm text-green-800 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                            <div className="flex items-start gap-2 p-3 text-sm text-green-800 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
                                 <span>{success}</span>
                             </div>
                         )}
@@ -76,6 +81,7 @@ export default function ForgotPasswordPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                autoComplete="username"
                                 disabled={isLoading}
                             />
                         </div>
@@ -87,9 +93,17 @@ export default function ForgotPasswordPage() {
                                     Sending...
                                 </>
                             ) : (
-                                "Send Reset Link"
+                                "Send reset code"
                             )}
                         </Button>
+
+                        {success ? (
+                            <Button asChild className="w-full" variant="outline">
+                                <Link href={`/reset-password?email=${encodeURIComponent(email.trim())}`}>
+                                    Enter reset code
+                                </Link>
+                            </Button>
+                        ) : null}
                     </form>
 
                     <div className="mt-6 text-center">

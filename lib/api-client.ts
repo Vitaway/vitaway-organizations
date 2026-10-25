@@ -1,13 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * API Client for Organization Dashboard
- * All API calls must include organization context for tenant isolation
+ * API client for the organization portal.
+ *
+ * Auth and dashboard calls use Vitaway core-backend:
+ *   https://care-api.vitaway.org/api/v1
+ *
+ * The browser calls same-origin /api/care, which next.config rewrites to
+ * that base. care-api CORS does not allow https://organizations.vitaway.org.
+ *
+ * A stale NEXT_PUBLIC_API_BASE_URL that still points at the Laravel
+ * organization API (…/api/organization) is ignored so password reset
+ * cannot stay on the email-only EHR path.
+ *
+ * Employer dashboard routes (employees, programs, appointments, reports,
+ * analytics) are not on core-backend yet. Those calls still go to this
+ * base and return "Route not found" until the org module exposes them.
+ * lib/ehr-client.ts remains on the Laravel EHR API.
  */
 
 import { PaginationParams } from "@/types";
+import {
+  DEFAULT_CARE_API_BASE_URL,
+  ORG_PORTAL,
+  getApiBaseUrl,
+  isLegacyLaravelOrgBase,
+  resolveApiBaseUrl,
+} from "@/lib/api-base";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/organization";
+export {
+  DEFAULT_CARE_API_BASE_URL,
+  ORG_PORTAL,
+  getApiBaseUrl,
+  isLegacyLaravelOrgBase,
+  resolveApiBaseUrl,
+};
 
 class ApiError extends Error {
   constructor(
@@ -48,21 +74,34 @@ function clearAuthStorage(): void {
   document.cookie = "auth_token=; path=/; max-age=0";
 }
 
+type ApiFetchInit = RequestInit & {
+  /** "ignore" leaves a 401 to the caller and does not clear the signed-in session. */
+  unauthorized?: "session" | "ignore";
+};
+
+function readErrorMessage(payload: any, status: number, statusText: string): string {
+  const raw = payload?.error ?? payload?.message;
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  if (Array.isArray(raw) && raw.length) return raw.map(String).join("; ");
+  return `HTTP ${status}: ${statusText}`;
+}
+
 async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiFetchInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const { unauthorized = "session", ...requestInit } = options;
+  const url = `${getApiBaseUrl()}${endpoint}`;
   const token = getToken();
 
   try {
     const response = await fetch(url, {
-      ...options,
+      ...requestInit,
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
+        ...requestInit.headers,
       },
     });
 
@@ -77,17 +116,16 @@ async function fetchApi<T>(
         errorData = { message: responseText || response.statusText };
       }
       
-      // If unauthorized, remove token
-      if (response.status === 401) {
+      if (response.status === 401 && unauthorized === "session") {
         clearAuthStorage();
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("auth:unauthorized"));
         }
       }
-      
+
       throw new ApiError(
         response.status,
-        errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+        readErrorMessage(errorData, response.status, response.statusText),
         errorData
       );
     }
@@ -108,52 +146,251 @@ async function fetchApi<T>(
   }
 }
 
-// Authentication
+export interface AuthUser {
+  id: number;
+  firstname: string;
+  lastname: string;
+  email: string;
+  full_name: string;
+}
+
+export interface AuthOrganization {
+  id: number;
+  name: string;
+  code: string;
+  type: string;
+}
+
+export type LoginResult =
+  | {
+      success: true;
+      mfaRequired: true;
+      challengeToken: string;
+      debugCode?: string;
+    }
+  | {
+      success: true;
+      mfaRequired: false;
+      token: string;
+      user: AuthUser;
+      organization: AuthOrganization | null;
+      role: string;
+      permissions: string[];
+    };
+
+export interface AuthMessage {
+  success: boolean;
+  message?: string;
+  data?: { ok?: boolean; debugCode?: string };
+}
+
+function readString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readId(value: unknown): number {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function readStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+/** Pull an organization record out of a care-api user, /orgs/me, or /ehr/partner payload. */
+export function organizationFrom(value: unknown): AuthOrganization | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const nested = [record.organization, record.org].find(
+    (entry) => entry && typeof entry === "object"
+  ) as Record<string, unknown> | undefined;
+  const source = nested ?? record;
+  const name = readString(source.name);
+  if (!name) return null;
+  if (!nested && (source.email || source.role || source.token)) return null;
+  return {
+    id: readId(source.id),
+    name,
+    code: readString(source.code),
+    type: readString(source.type),
+  };
+}
+
+function mapUser(raw: Record<string, unknown>): AuthUser {
+  const display =
+    readString(raw.displayName) ||
+    readString(raw.full_name) ||
+    readString(raw.fullName) ||
+    readString(raw.name);
+  const nameParts = display.split(/\s+/).filter(Boolean);
+  const firstname =
+    readString(raw.firstname) || readString(raw.firstName) || readString(raw.first_name) || nameParts[0] || "";
+  const lastname =
+    readString(raw.lastname) ||
+    readString(raw.lastName) ||
+    readString(raw.last_name) ||
+    nameParts.slice(1).join(" ");
+  const email = readString(raw.email);
+  return {
+    id: readId(raw.id),
+    firstname,
+    lastname,
+    email,
+    full_name: display || `${firstname} ${lastname}`.trim() || email,
+  };
+}
+
+function assertAuthOk(response: { success?: boolean; error?: string; message?: string }) {
+  if (response?.success === false) {
+    throw new ApiError(400, readString(response.error) || readString(response.message) || "Request failed", response);
+  }
+}
+
+function sessionFromPayload(payload: Record<string, any>): LoginResult {
+  if (payload.mfaRequired === true) {
+    const challengeToken = readString(payload.challengeToken);
+    if (challengeToken.length < 20) {
+      throw new ApiError(502, "We could not sign you in. Try again in a moment.", payload);
+    }
+    const debugCode = readString(payload.debugCode);
+    return {
+      success: true,
+      mfaRequired: true,
+      challengeToken,
+      ...(debugCode ? { debugCode } : {}),
+    };
+  }
+
+  const token =
+    readString(payload.token) || readString(payload.accessToken) || readString(payload.access_token);
+  const rawUser = payload.user && typeof payload.user === "object" ? payload.user as Record<string, unknown> : null;
+  const role = readString(payload.role) || (rawUser ? readString(rawUser.role) : "");
+
+  if (role && role !== "organization_admin") {
+    throw new ApiError(401, "This sign-in is for organisation accounts.", payload);
+  }
+  if (!token || !rawUser || role !== "organization_admin") {
+    throw new ApiError(502, "We could not sign you in. Try again in a moment.", payload);
+  }
+
+  const user = mapUser(rawUser);
+  const organization = organizationFrom(payload) || organizationFrom(rawUser);
+  return {
+    success: true,
+    mfaRequired: false,
+    token,
+    user,
+    organization,
+    role,
+    permissions: readStringList(payload.permissions).length
+      ? readStringList(payload.permissions)
+      : readStringList(rawUser.permissions),
+  };
+}
+
+async function readOrganizationContext(): Promise<AuthOrganization | null> {
+  for (const path of ["/orgs/me", "/ehr/partner"]) {
+    try {
+      const response = await fetchApi<any>(path, { unauthorized: "ignore" });
+      const org = organizationFrom(response?.data) || organizationFrom(response);
+      if (org) return org;
+    } catch {
+      // Optional context. A missing org route must not undo a valid sign-in.
+    }
+  }
+  return null;
+}
+
+async function establishSession(response: any): Promise<LoginResult> {
+  assertAuthOk(response);
+  const payload = (response?.data && typeof response.data === "object" ? response.data : response) as Record<string, any>;
+  const session = sessionFromPayload(payload);
+  if (session.mfaRequired) return session;
+
+  setToken(session.token);
+  if (!session.organization) {
+    session.organization = await readOrganizationContext();
+  }
+  return session;
+}
+
+// Authentication — core-backend /api/v1/auth, always scoped to the organization portal.
 export async function login(email: string, password: string) {
   const response = await fetchApi<any>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    unauthorized: "ignore",
+    body: JSON.stringify({
+      email: email.trim(),
+      password,
+      portal: ORG_PORTAL,
+    }),
   });
-  
-  if (response.success && response.data.token) {
-    setToken(response.data.token);
-  }
-  
-  return response;
+  return establishSession(response);
+}
+
+export async function verifyMfa(challengeToken: string, code: string) {
+  const response = await fetchApi<any>("/auth/mfa/verify", {
+    method: "POST",
+    unauthorized: "ignore",
+    body: JSON.stringify({
+      challengeToken,
+      code: code.trim(),
+    }),
+  });
+  return establishSession(response);
 }
 
 export async function logout() {
   try {
-    await fetchApi("/auth/logout", { method: "POST" });
+    await fetchApi("/auth/logout", { method: "POST", unauthorized: "ignore" });
   } finally {
     removeToken();
   }
 }
 
+/**
+ * Core-backend does not expose /auth/refresh. Session extension is
+ * POST /auth/session/keep and is not used by this portal.
+ */
 export async function refreshToken() {
-  const response = await fetchApi<any>("/auth/refresh", { method: "POST" });
-  if (response?.success && response.data?.token) {
-    setToken(response.data.token);
-  }
-  return response;
+  throw new ApiError(404, "Token refresh is not available on the organization API.", null);
 }
 
 export async function forgotPassword(email: string) {
-  return fetchApi<{ success: boolean; message: string }>("/auth/forgot-password", {
+  return fetchApi<AuthMessage>("/auth/forgot-password", {
     method: "POST",
-    body: JSON.stringify({ email }),
+    unauthorized: "ignore",
+    body: JSON.stringify({ email: email.trim(), portal: ORG_PORTAL }),
+  });
+}
+
+export async function verifyResetCode(email: string, code: string) {
+  return fetchApi<AuthMessage>("/auth/verify-reset-code", {
+    method: "POST",
+    unauthorized: "ignore",
+    body: JSON.stringify({
+      email: email.trim(),
+      code: code.trim(),
+      portal: ORG_PORTAL,
+    }),
   });
 }
 
 export async function resetPassword(data: {
-  token: string;
   email: string;
+  code: string;
   password: string;
-  password_confirmation: string;
 }) {
-  return fetchApi<{ success: boolean; message: string }>("/auth/reset-password", {
+  return fetchApi<AuthMessage>("/auth/reset-password", {
     method: "POST",
-    body: JSON.stringify(data),
+    unauthorized: "ignore",
+    body: JSON.stringify({
+      email: data.email.trim(),
+      code: data.code.trim(),
+      password: data.password,
+      portal: ORG_PORTAL,
+    }),
   });
 }
 
@@ -221,7 +458,7 @@ export async function bulkUploadEmployees(file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE_URL}/employees/bulk`, {
+  const response = await fetch(`${getApiBaseUrl()}/employees/bulk`, {
     method: "POST",
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -231,7 +468,7 @@ export async function bulkUploadEmployees(file: File) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, errorData.message || "Upload failed", errorData);
+    throw new ApiError(response.status, readErrorMessage(errorData, response.status, response.statusText), errorData);
   }
 
   return response.json();
@@ -453,7 +690,7 @@ export async function generateReport(data: {
 
 export async function downloadReport(reportId: string) {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/reports/${reportId}`, {
+  const response = await fetch(`${getApiBaseUrl()}/reports/${reportId}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

@@ -80,10 +80,16 @@ This dashboard enables organizations to:
 
 3. Create environment file:
    ```bash
-   cp .env.local.example .env.local
+   cp .env.example .env.local
    ```
 
-4. Update `.env.local` with your configuration
+4. Keep the API base on core-backend:
+
+   ```bash
+   NEXT_PUBLIC_API_BASE_URL=https://care-api.vitaway.org/api/v1
+   ```
+
+   Do not point `NEXT_PUBLIC_API_BASE_URL` at the legacy Laravel organization API (`https://ehr.vitaway.org/api/organization`). The client ignores that URL if it is still set. `lib/ehr-client.ts` is separate and still uses `NEXT_PUBLIC_EHR_API_URL` (default `https://ehr.vitaway.org/api`).
 
 5. Run the development server:
    ```bash
@@ -157,35 +163,52 @@ Two user roles are supported:
 
 ## API Integration
 
-The application uses a centralized API client (`lib/api-client.ts`) for all backend communications. 
+The organization portal talks to Vitaway core-backend through `lib/api-client.ts`.
 
-### Key API Endpoints (to be implemented):
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://care-api.vitaway.org/api/v1
+```
 
-- `GET /dashboard/metrics` - Dashboard overview metrics
-- `GET /dashboard/population-health` - Population health data
-- `GET /dashboard/engagement` - Engagement metrics
-- `GET /employees` - Employee list (paginated)
-- `POST /employees` - Add employee
-- `POST /employees/bulk-upload` - Bulk upload employees
-- `GET /reports` - List reports
-- `POST /reports/generate` - Generate new report
-- `GET /exports/history` - Export audit trail
+Production builds that still have `NEXT_PUBLIC_API_BASE_URL=https://ehr.vitaway.org/api/organization` are treated as legacy. Auth does not stay on that Laravel path. Set the Vercel variable to the care-api URL above on the next deploy. This repo does not change Vercel project settings.
 
-## Authentication Setup
+The browser does not call care-api directly. care-api CORS currently allows `https://care.vitaway.org` and `https://ehr.vitaway.org`, and does not allow `https://organizations.vitaway.org`. `next.config.ts` rewrites same-origin `/api/care/*` to `NEXT_PUBLIC_API_BASE_URL` (default `https://care-api.vitaway.org/api/v1`). Auth requests still carry `portal: "organization"`.
 
-The dashboard includes authentication utilities in `lib/auth.ts`. You need to integrate with your authentication provider:
+### Auth (core-backend)
 
-### Recommended Auth Providers:
-- NextAuth.js
-- Clerk
-- Auth0
-- Supabase Auth
+Every auth call sends `portal: "organization"`.
 
-### Required Implementation:
-1. Update `getCurrentUser()` function
-2. Update `getCurrentOrganizationId()` function
-3. Implement session management
-4. Add protected routes middleware
+- `POST /auth/login` — `{ email, password, portal }`. Response data is `{ token, user }` with `user.role === "organization_admin"`. If `mfaRequired` is true, the UI finishes with `POST /auth/mfa/verify` `{ challengeToken, code }` (no `portal` field).
+- `POST /auth/forgot-password` — `{ email, portal }`. Sends a 6-digit code by email. When the account has a phone number, core-backend also sends it WhatsApp-first, then SMS. The portal does not call the phone provider itself.
+- `POST /auth/verify-reset-code` — `{ email, code, portal }`
+- `POST /auth/reset-password` — `{ email, code, password, portal }`
+- `POST /auth/logout`
+
+Password reset is an OTP flow, not an email link. `/reset-password?token=` is no longer accepted.
+
+After sign-in the client reads `GET /orgs/me` or `GET /ehr/partner` only to fill the organization name in the sidebar. Those are the org routes core-backend exposes today.
+
+### Dashboard routes not on core-backend yet
+
+`lib/api-client.ts` still requests the employer dashboard paths below. Live care-api responds `404 Route not found` for them. They previously lived on Laravel `https://ehr.vitaway.org/api/organization` and have not been reimplemented under `/api/v1`. Do not prefix them with `/api/organization` on care-api.
+
+- `GET/PUT /profile`
+- `GET /dashboard/overview`
+- `GET /analytics/population-health`, `GET /analytics/engagement`
+- `GET/POST /employees`, `POST /employees/bulk`, program assignment, `POST /notifications`
+- `GET/POST /programs` and nested modules, lessons, quizzes, assign, progress
+- `GET/POST /reports`, report download
+- `GET /audit/exports`, `GET /audit/access`
+- `GET/POST /appointments` and `/employee/appointments` (providers, booking, status, statistics, partners)
+
+`POST /auth/refresh` does not exist. Core-backend has `POST /auth/session/keep`; this portal does not call it.
+
+### Laravel EHR client (unchanged)
+
+`lib/ehr-client.ts` still calls `NEXT_PUBLIC_EHR_API_URL` (default `https://ehr.vitaway.org/api`) for EHR cross-calls, using the organization bearer token. A care-api JWT is not a Laravel Sanctum token, so those calls fail until that client is migrated.
+
+## Authentication
+
+Sign-in is email and password against core-backend, limited to `organization_admin`. The session token is stored in `localStorage` (`auth_token`) and an `auth_token` cookie. `lib/auth.ts` still contains unused role helpers and is not the live session.
 
 ## Data Models
 
@@ -217,15 +240,12 @@ npm run lint
 
 ## Next Steps
 
-1. **Integrate Authentication**
-   - Choose and implement an auth provider
-   - Update auth utilities in `lib/auth.ts`
-   - Add protected route middleware
+1. **Authentication**
+   - Sign-in, MFA, and password reset already call core-backend with `portal: "organization"`
 
-2. **Connect Backend API**
-   - Implement API endpoints
-   - Update `NEXT_PUBLIC_API_BASE_URL` in `.env.local`
-   - Replace mock data with real API calls
+2. **Connect remaining dashboard APIs**
+   - Employer dashboard routes listed above still 404 on core-backend
+   - Keep `NEXT_PUBLIC_API_BASE_URL=https://care-api.vitaway.org/api/v1`
 
 3. **Add Real-time Features**
    - WebSocket integration for live updates
