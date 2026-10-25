@@ -97,7 +97,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         <div className="px-6 py-4 bg-sidebar-accent">
           <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wide font-medium">Organization</p>
           <p className="text-sm font-semibold text-sidebar-foreground mt-1">{organization.name}</p>
-          <p className="text-xs text-sidebar-foreground/60 mt-0.5">{organization.code}</p>
+          {organization.code ? (
+            <p className="text-xs text-sidebar-foreground/60 mt-0.5">{organization.code}</p>
+          ) : null}
         </div>
       )}
 
@@ -131,8 +133,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-border ring-2 ring-sidebar-foreground/20">
               <span className="text-xs font-semibold text-sidebar-foreground">
-                {user.firstname.charAt(0)}
-                {user.lastname.charAt(0)}
+                {(user.firstname || user.email || "?").charAt(0)}
+                {user.lastname ? user.lastname.charAt(0) : ""}
               </span>
             </div>
             <div className="flex-1 min-w-0">

@@ -15,9 +15,12 @@ import Link from "next/link";
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [mfaCode, setMfaCode] = useState("");
+    const [challengeToken, setChallengeToken] = useState("");
+    const [debugCode, setDebugCode] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, verifyMfa } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,7 +28,16 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            await login(email, password);
+            if (challengeToken) {
+                await verifyMfa(challengeToken, mfaCode);
+                return;
+            }
+            const result = await login(email, password);
+            if (result.mfaRequired) {
+                setChallengeToken(result.challengeToken);
+                setDebugCode(result.debugCode ?? "");
+                setMfaCode("");
+            }
         } catch (err: any) {
             setError(err.message || "Invalid email or password");
         } finally {
@@ -42,9 +54,13 @@ export default function LoginPage() {
             </div>
             <Card className="w-full max-w-md bg-card border-border">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl text-center">Signin</CardTitle>
+                    <CardTitle className="text-2xl text-center">
+                        {challengeToken ? "Check your email" : "Sign in"}
+                    </CardTitle>
                     <CardDescription className="text-center">
-                        Access your organization dashboard
+                        {challengeToken
+                            ? "Enter the 6-digit code we sent to finish signing in."
+                            : "Access your organization dashboard"}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -56,50 +72,91 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="admin@organization.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                disabled={isLoading}
-                            />
-                        </div>
+                        {challengeToken ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="mfa-code">Verification code</Label>
+                                <Input
+                                    id="mfa-code"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    placeholder="6-digit code"
+                                    value={mfaCode}
+                                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                    required
+                                    minLength={6}
+                                    maxLength={6}
+                                    pattern="\d{6}"
+                                    disabled={isLoading}
+                                />
+                                {debugCode ? (
+                                    <p className="text-xs text-muted-foreground">Development code {debugCode}</p>
+                                ) : null}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="admin@organization.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        autoComplete="username"
+                                        disabled={isLoading}
+                                    />
+                                </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <PasswordInput
-                                id="password"
-                                placeholder="Enter your password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                disabled={isLoading}
-                            />
-                        </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Password</Label>
+                                    <PasswordInput
+                                        id="password"
+                                        placeholder="Enter your password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        minLength={6}
+                                        autoComplete="current-password"
+                                        disabled={isLoading}
+                                    />
+                                </div>
 
-                        <div className="flex justify-end">
-                            <Link
-                                href="/forgot-password"
-                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                Forgot password?
-                            </Link>
-                        </div>
+                                <div className="flex justify-end">
+                                    <Link
+                                        href="/forgot-password"
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Forgot password?
+                                    </Link>
+                                </div>
+                            </>
+                        )}
 
                         <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                    Signing in...
+                                    {challengeToken ? "Verifying..." : "Signing in..."}
                                 </>
                             ) : (
-                                "Sign In"
+                                challengeToken ? "Verify code" : "Sign In"
                             )}
                         </Button>
+                        {challengeToken ? (
+                            <button
+                                type="button"
+                                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => {
+                                    setChallengeToken("");
+                                    setMfaCode("");
+                                    setDebugCode("");
+                                    setError("");
+                                }}
+                            >
+                                Use a different account
+                            </button>
+                        ) : null}
                     </form>
                 </CardContent>
             </Card>
